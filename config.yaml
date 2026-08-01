@@ -1,0 +1,172 @@
+# ============================================================================
+# newsdesk configuration
+# This file is the whole product surface. Everything below is meant to be edited.
+# After any edit, run `newsdesk doctor` before you trust the next build.
+# ============================================================================
+
+profile:
+  timezone: America/Edmonton
+
+workers: 8
+
+# ---------------------------------------------------------------------------
+# LLM. provider: ollama | anthropic | none
+# `none` still produces a full board, using feed blurbs instead of summaries.
+# ---------------------------------------------------------------------------
+llm:
+  provider: ollama
+  max_items_per_run: 45          # hard cap on per-article pattern runs per build
+
+  ollama:
+    host: http://localhost:11434
+    model: qwen3:8b              # 8b is the sweet spot for CPU-only summarization
+    num_ctx: 8192
+    temperature: 0.2
+    timeout: 600
+    keep_alive: 15m              # keeps the model resident across a whole run
+
+  anthropic:
+    model: claude-sonnet-4-6
+    max_tokens: 1600
+    api_key_env: ANTHROPIC_API_KEY
+
+# ---------------------------------------------------------------------------
+# Fabric patterns. Pulled from GitHub on first use, then cached under cache_dir.
+# To override one, create patterns/<name>/system.md next to this file.
+# `newsdesk patterns` lists what is available and what is cached.
+# ---------------------------------------------------------------------------
+patterns:
+  repo: danielmiessler/fabric
+  ref: main
+  cache_dir: .cache/patterns
+  local_dir: patterns
+  default: extract_insights
+  offline: false                 # true = use only cached + local patterns
+
+# ---------------------------------------------------------------------------
+# Scoring. Every number here is visible in the UI: hover any signal meter to
+# see the multiplication that produced that story's score.
+# ---------------------------------------------------------------------------
+scoring:
+  half_life_hours: 20            # a 20h-old story scores half a brand new one
+  corroboration_bonus: 0.35      # per extra outlet covering the same story
+  keyword_weight: 0.6            # per weighted keyword hit
+  title_multiplier: 2.0          # a keyword in the headline counts double
+  max_age_hours: 96              # anything older is not considered
+
+output:
+  dir: out
+  db: newsdesk.sqlite3
+  keep_days: 30
+  title: Newsdesk
+  theme: auto                    # auto | light | dark
+
+# ---------------------------------------------------------------------------
+# Applied to every topic unless the topic overrides it.
+# ---------------------------------------------------------------------------
+topic_defaults:
+  max_items: 8
+  min_score: 0.15
+  require_match: true            # false = keep everything the feed carries
+
+# ---------------------------------------------------------------------------
+# TOPICS
+#   pattern         Fabric pattern run on each article
+#   digest_pattern  Fabric pattern run once across the topic's top stories
+#   include         gate + boost (with require_match: true, a story needs one)
+#   boost           boost only, never gates
+#   exclude         drops the story outright
+# ---------------------------------------------------------------------------
+topics:
+
+  - name: Security & Threat Intel
+    slug: security
+    pattern: extract_insights
+    digest_pattern: create_network_threat_landscape
+    max_items: 10
+    include: [vulnerability, exploit, ransomware, breach, CVE, zero-day, patch,
+              threat actor, malware, phishing, supply chain, CISA, advisory,
+              identity, authentication, cloud security, incident]
+    boost: [SaaS, SSO, Entra, Azure, Microsoft 365, SOC 2, active exploitation]
+    exclude: [webinar, sponsored, "buyer's guide"]
+    sources:
+      - {url: "https://www.darkreading.com/rss.xml", name: Dark Reading, weight: 1.15}
+      - {url: "https://krebsonsecurity.com/feed/", name: Krebs on Security, weight: 1.3}
+      - {url: "https://therecord.media/feed", name: The Record, weight: 1.1}
+      - {url: "https://www.bleepingcomputer.com/feed/", name: BleepingComputer, weight: 1.0}
+      - {url: "https://isc.sans.edu/rssfeed_full.xml", name: SANS ISC, weight: 1.2}
+      - {url: "https://www.schneier.com/feed/", name: Schneier, weight: 1.15}
+      - {url: "https://tldrsec.com/feed", name: "tldr;sec", weight: 1.3}
+
+  - name: AI Engineering & Governance
+    slug: ai
+    pattern: extract_wisdom
+    digest_pattern: create_5_sentence_summary
+    max_items: 10
+    include: [LLM, agent, model, inference, RAG, evaluation, fine-tune, prompt,
+              AI governance, AI policy, EU AI Act, NIST AI, open weights,
+              context window, hallucination, benchmark]
+    boost: [Ollama, local model, Claude, quantization, MCP, tool use, Qwen]
+    exclude: [stock, funding round, valuation]
+    sources:
+      - {url: "https://newsletter.danielmiessler.com/feed", name: Unsupervised Learning, weight: 1.35}
+      - {url: "https://simonwillison.net/atom/everything/", name: Simon Willison, weight: 1.3}
+      - {url: "https://raw.githubusercontent.com/taobojlen/anthropic-rss-feed/main/anthropic_news_rss.xml", name: Anthropic, weight: 1.2}
+      - {url: "https://openai.com/news/rss.xml", name: OpenAI, weight: 1.0}
+      - {url: "https://huggingface.co/blog/feed.xml", name: Hugging Face, weight: 1.0}
+      - {url: "https://hnrss.org/frontpage?points=200", name: Hacker News, weight: 0.9}
+
+  - name: Engineering Leadership & Delivery
+    slug: delivery
+    pattern: extract_main_idea
+    digest_pattern: extract_insights
+    max_items: 7
+    include: [engineering management, team, delivery, agile, scrum, sprint,
+              architecture, technical debt, developer productivity, DORA,
+              platform engineering, incident, postmortem, hiring, retention]
+    boost: [psychological safety, staff engineer, org design, DevEx]
+    sources:
+      - {url: "https://martinfowler.com/feed.atom", name: Martin Fowler, weight: 1.3}
+      - {url: "https://feed.infoq.com/", name: InfoQ, weight: 1.0}
+      - {url: "https://newsletter.pragmaticengineer.com/feed", name: Pragmatic Engineer, weight: 1.25}
+      - {url: "https://www.scrum.org/resources/blog/rss.xml", name: Scrum.org, weight: 1.0}
+      - {url: "https://blog.pragmaticengineer.com/rss/", name: Pragmatic Engineer Blog, weight: 1.0}
+
+  - name: Quality & Testing
+    slug: quality
+    pattern: create_5_sentence_summary
+    digest_pattern: create_5_sentence_summary
+    max_items: 6
+    include: [testing, QA, quality, test automation, flaky, coverage,
+              regression, exploratory testing, accessibility testing, CI]
+    boost: [Playwright, contract testing, test strategy, shift left]
+    sources:
+      - {url: "https://www.ministryoftesting.com/contents/rss", name: Ministry of Testing, weight: 1.3}
+      - {url: "https://testing.googleblog.com/feeds/posts/default", name: Google Testing, weight: 1.2}
+      - {url: "https://katrinatester.blogspot.com/feeds/posts/default", name: Katrina Clokie, weight: 1.0}
+
+  - name: Tech Business & Signals
+    slug: business
+    pattern: extract_business_ideas
+    digest_pattern: create_5_sentence_summary
+    max_items: 6
+    include: [acquisition, funding, layoffs, earnings, market, regulation,
+              antitrust, pricing, enterprise software, SaaS, procurement]
+    boost: [Canada, Alberta, energy, midstream, oil and gas, grant, SR&ED]
+    sources:
+      - {url: "https://openrss.org/feed/morningbrew.com", name: Morning Brew, weight: 1.0}
+      - {url: "https://feeds.arstechnica.com/arstechnica/technology-lab", name: Ars Technica, weight: 1.0}
+
+  # Longer pieces worth an actual sit-down. Slow half life, deeper patterns.
+  - name: Deep Reads
+    slug: deep
+    pattern: extract_wisdom
+    digest_pattern: create_reading_plan
+    max_items: 5
+    min_score: 0.05
+    require_match: false
+    include: []
+    sources:
+      - {url: "https://www.schneier.com/feed/", name: Schneier, weight: 1.0}
+      - {url: "https://simonwillison.net/atom/everything/", name: Simon Willison, weight: 1.0}
+      - {url: "https://hnrss.org/best", name: HN Best, weight: 1.0}

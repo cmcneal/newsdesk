@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Newsdesk (sample) · 2026-08-01</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F6F2; --card:#FFFEFB; --ink:#16181C; --ink-2:#5C5F66; --ink-3:#8B8D93;
+  --rule:#DEDBD2; --rule-soft:#EBE8E0;
+  --accent:#1D4E6F; --accent-soft:#E4EDF2;
+  --flag:#7A1F3D; --flag-soft:#F3E3E8;
+  --sans:"IBM Plex Sans Condensed",ui-sans-serif,"Helvetica Neue",Arial,sans-serif;
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --rail:16.5rem;
+}
+html[data-theme="dark"],
+:root:not([data-theme="light"]) {}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]){
+    --paper:#14161A; --card:#191C21; --ink:#E9E7E1; --ink-2:#A2A5AC; --ink-3:#75787F;
+    --rule:#2A2E35; --rule-soft:#22262C;
+    --accent:#7FB3CE; --accent-soft:#1B2A33;
+    --flag:#D89AAB; --flag-soft:#2E1E25;
+  }
+}
+html[data-theme="dark"]{
+  --paper:#14161A; --card:#191C21; --ink:#E9E7E1; --ink-2:#A2A5AC; --ink-3:#75787F;
+  --rule:#2A2E35; --rule-soft:#22262C;
+  --accent:#7FB3CE; --accent-soft:#1B2A33;
+  --flag:#D89AAB; --flag-soft:#2E1E25;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--serif); font-size:16px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit}
+a:focus-visible,button:focus-visible,summary:focus-visible{
+  outline:2px solid var(--accent); outline-offset:3px; border-radius:2px;
+}
+
+/* ---------- rail ---------- */
+.rail{
+  position:fixed; inset:0 auto 0 0; width:var(--rail); padding:2rem 1.5rem;
+  border-right:1px solid var(--rule); display:flex; flex-direction:column; gap:1.75rem;
+  overflow-y:auto;
+}
+.masthead .wordmark{
+  font-family:var(--sans); font-weight:700; font-size:1.5rem; letter-spacing:.02em;
+  text-transform:uppercase; margin:0; line-height:1;
+}
+.masthead .rule{height:3px; background:var(--ink); margin:.55rem 0 .5rem}
+.masthead .edition{
+  font-family:var(--mono); font-size:.72rem; color:var(--ink-2);
+  text-transform:uppercase; letter-spacing:.08em;
+}
+nav ol{list-style:none; margin:0; padding:0}
+nav li{border-bottom:1px solid var(--rule-soft)}
+nav a{
+  display:flex; align-items:baseline; gap:.6rem; padding:.5rem 0;
+  text-decoration:none; font-family:var(--sans); font-weight:600; font-size:.95rem;
+}
+nav a:hover,nav a.active{color:var(--accent)}
+nav .idx{font-family:var(--mono); font-size:.68rem; color:var(--ink-3); width:1.1rem}
+nav .n{margin-left:auto; font-family:var(--mono); font-size:.72rem; color:var(--ink-3)}
+.rail-foot{margin-top:auto; font-family:var(--mono); font-size:.68rem; color:var(--ink-3); line-height:1.7}
+.rail-foot dl{display:grid; grid-template-columns:auto 1fr; gap:.1rem .6rem; margin:0 0 .9rem}
+.rail-foot dt{color:var(--ink-3)}
+.rail-foot dd{margin:0; color:var(--ink-2)}
+kbd{
+  font-family:var(--mono); font-size:.66rem; border:1px solid var(--rule);
+  border-bottom-width:2px; border-radius:3px; padding:0 .28rem; color:var(--ink-2);
+}
+.tools{display:flex; gap:.4rem; margin-bottom:.9rem}
+.tools button{
+  font-family:var(--mono); font-size:.68rem; text-transform:uppercase; letter-spacing:.06em;
+  background:none; border:1px solid var(--rule); color:var(--ink-2);
+  padding:.3rem .5rem; border-radius:3px; cursor:pointer;
+}
+.tools button:hover{border-color:var(--accent); color:var(--accent)}
+
+/* ---------- main ---------- */
+main{margin-left:var(--rail); padding:2.5rem 3rem 6rem; max-width:60rem}
+.filter{
+  position:sticky; top:0; z-index:5; background:var(--paper);
+  padding:.35rem 0 1rem; margin-bottom:.5rem;
+}
+.filter input{
+  width:100%; font-family:var(--mono); font-size:.82rem; color:var(--ink);
+  background:var(--card); border:1px solid var(--rule); border-radius:3px;
+  padding:.55rem .7rem;
+}
+.filter input::placeholder{color:var(--ink-3)}
+
+.topic{margin-bottom:3.5rem; scroll-margin-top:4rem}
+.topic-head{border-top:2px solid var(--ink); padding-top:.6rem; margin-bottom:1.25rem}
+.eyebrow{
+  font-family:var(--mono); font-size:.68rem; text-transform:uppercase; letter-spacing:.12em;
+  color:var(--ink-3); display:flex; gap:.75rem; align-items:center;
+}
+.eyebrow .pattern{color:var(--accent)}
+.topic-head h2{
+  font-family:var(--sans); font-weight:700; font-size:1.9rem; letter-spacing:-.01em;
+  margin:.15rem 0 0; line-height:1.15;
+}
+
+.brief{
+  background:var(--card); border:1px solid var(--rule); border-left:3px solid var(--accent);
+  padding:1.1rem 1.3rem; margin-bottom:1.75rem; font-size:.97rem;
+}
+.brief > :first-child{margin-top:0}
+.brief > :last-child{margin-bottom:0}
+.brief h4{
+  font-family:var(--mono); font-size:.7rem; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--accent); margin:1.1rem 0 .4rem; font-weight:600;
+}
+.brief ul{margin:.3rem 0 .7rem; padding-left:1.1rem}
+.brief li{margin-bottom:.3rem}
+
+/* ---------- story ---------- */
+.story{
+  display:grid; grid-template-columns:2.6rem 1fr; gap:0 1rem;
+  padding:1.15rem 0; border-bottom:1px solid var(--rule-soft);
+}
+.story.cursor{background:var(--accent-soft); box-shadow:-1rem 0 0 var(--accent-soft), 1rem 0 0 var(--accent-soft)}
+.story[hidden]{display:none}
+
+/* signature element: the signal meter */
+.signal{display:flex; flex-direction:column; gap:2px; padding-top:.4rem; cursor:help}
+.signal .seg{height:4px; background:var(--rule); border-radius:1px}
+.signal .seg.on{background:var(--accent)}
+.story.corroborated .signal .seg.on{background:var(--flag)}
+.signal .val{
+  font-family:var(--mono); font-size:.62rem; color:var(--ink-3); margin-top:.25rem;
+  letter-spacing:-.02em;
+}
+
+.story h3{
+  font-family:var(--sans); font-weight:600; font-size:1.18rem; line-height:1.3;
+  margin:0 0 .35rem; letter-spacing:-.005em;
+}
+.story h3 a{text-decoration:none}
+.story h3 a:hover{text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px}
+.meta{
+  font-family:var(--mono); font-size:.7rem; color:var(--ink-3);
+  display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin-bottom:.5rem;
+}
+.meta .src{color:var(--ink-2); font-weight:500}
+.meta .chip{
+  border:1px solid var(--rule); border-radius:2px; padding:0 .3rem; color:var(--ink-3);
+}
+.meta .chip.hit{border-color:var(--accent); color:var(--accent)}
+.meta .chip.multi{border-color:var(--flag); color:var(--flag); background:var(--flag-soft)}
+
+.blurb{margin:.2rem 0 0; color:var(--ink-2); font-size:.92rem}
+details.summary{margin-top:.55rem}
+details.summary > summary{
+  font-family:var(--mono); font-size:.68rem; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--accent); cursor:pointer; list-style:none;
+}
+details.summary > summary::-webkit-details-marker{display:none}
+details.summary > summary::before{content:"+ "; }
+details.summary[open] > summary::before{content:"\2212 "}
+.summary-body{
+  font-size:.93rem; border-left:1px solid var(--rule); padding-left:1rem;
+  margin-top:.6rem; color:var(--ink);
+}
+.summary-body h4{
+  font-family:var(--mono); font-size:.68rem; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--ink-3); margin:1rem 0 .35rem; font-weight:600;
+}
+.summary-body > :first-child{margin-top:0}
+.summary-body ul{margin:.25rem 0 .6rem; padding-left:1.05rem}
+.summary-body li{margin-bottom:.25rem}
+.also{
+  margin-top:.5rem; font-family:var(--mono); font-size:.7rem; color:var(--ink-3);
+  display:flex; flex-wrap:wrap; gap:.4rem; align-items:center;
+}
+.also a{color:var(--ink-2); text-decoration:none; border-bottom:1px dotted var(--rule)}
+.also a:hover{color:var(--accent)}
+.empty{
+  font-family:var(--mono); font-size:.8rem; color:var(--ink-3);
+  border:1px dashed var(--rule); padding:1.1rem; text-align:center;
+}
+
+@media (max-width:900px){
+  /* No pointer rail and no keyboard: fold the nav into a scrolling strip
+     so the first story is above the fold. */
+  .rail{
+    position:static; width:auto; inset:auto; border-right:none;
+    border-bottom:1px solid var(--rule); gap:.9rem; padding:1.25rem 1.25rem .75rem;
+  }
+  .masthead .wordmark{font-size:1.25rem}
+  nav ol{display:flex; gap:1.1rem; overflow-x:auto; padding-bottom:.5rem; scrollbar-width:none}
+  nav ol::-webkit-scrollbar{display:none}
+  nav li{border-bottom:none; flex:0 0 auto}
+  nav a{padding:0; font-size:.85rem; white-space:nowrap}
+  nav .idx{display:none}
+  nav .n{margin-left:.3rem}
+  .rail-foot{margin-top:0}
+  .rail-foot dl, .rail-foot > div:last-child{display:none}
+  .tools{margin-bottom:0}
+  main{margin-left:0; padding:1.25rem 1.25rem 4rem}
+  .topic-head h2{font-size:1.5rem}
+  .story{grid-template-columns:2.2rem 1fr; gap:0 .75rem}
+  .story.cursor{box-shadow:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; scroll-behavior:auto!important}}
+@media print{.rail,.filter{display:none} main{margin:0; max-width:none}}
+</style>
+</head>
+<body>
+
+<aside class="rail">
+  <div class="masthead">
+    <h1 class="wordmark">Newsdesk (sample)</h1>
+    <div class="rule"></div>
+    <div class="edition">Saturday, 01 August 2026 · 17:22 MDT</div>
+  </div>
+
+  <nav aria-label="Topics">
+    <ol>
+      <li>
+        <a href="#security" data-slug="security">
+          <span class="idx">01</span>
+          <span>Security & Threat Intel</span>
+          <span class="n">5</span>
+        </a>
+      </li>
+      <li>
+        <a href="#ai" data-slug="ai">
+          <span class="idx">02</span>
+          <span>AI Engineering & Governance</span>
+          <span class="n">4</span>
+        </a>
+      </li>
+      <li>
+        <a href="#delivery" data-slug="delivery">
+          <span class="idx">03</span>
+          <span>Engineering Leadership & Delivery</span>
+          <span class="n">3</span>
+        </a>
+      </li>
+    </ol>
+  </nav>
+
+  <div class="rail-foot">
+    <div class="tools">
+      <button id="theme-toggle" type="button">Theme</button>
+      <button id="expand-all" type="button">Expand all</button>
+    </div>
+    <dl>
+      <dt>built</dt><dd>17:22</dd>
+      <dt>model</dt><dd>ollama/qwen3:8b</dd>
+      <dt>scanned</dt><dd>12 items</dd>
+      <dt>sources</dt><dd>8 ok, 1 failed</dd>
+      <dt>run</dt><dd>94s</dd>
+    </dl>
+    <div>
+      <kbd>j</kbd><kbd>k</kbd> move · <kbd>o</kbd> open · <kbd>s</kbd> summary<br>
+      <kbd>/</kbd> filter · <kbd>1</kbd>–<kbd>9</kbd> topic · <kbd>g</kbd> top
+    </div>
+  </div>
+</aside>
+
+<main>
+  <div class="filter">
+    <input id="filter" type="search" placeholder="Filter headlines and sources  ( / )" autocomplete="off">
+  </div>
+
+  <section class="topic" id="security">
+    <header class="topic-head">
+      <div class="eyebrow">
+        <span>01</span>
+        <span>5 stories</span>
+<span class="pattern">extract_insights</span>      </div>
+      <h2>Security & Threat Intel</h2>
+    </header>
+
+    <div class="brief"><h4 class="label">Attack Surface</h4>
+<ul>
+<li>Identity gateways are the live edge today. Two outlets confirm exploitation of the same token-forging flaw, and the advisory sets a seven-day clock.</li>
+<li>Build pipelines are the slower-moving risk. One compromise reached forty vendors, and the entry point was an unsigned artifact rather than a credential.</li>
+</ul>
+<h4 class="label">What Changed Since Yesterday</h4>
+<ul>
+<li>Exploitation moved from proof of concept to confirmed in the wild, and a national advisory now carries a remediation deadline.</li>
+<li>Cloud posture tooling is now an explicit target rather than collateral damage.</li>
+</ul>
+<h4 class="label">Where To Spend Attention</h4>
+<ul>
+<li>Confirm gateway versions and rehearse session revocation, which patching alone does not cover.</li>
+<li>Check whether internal build artifacts are signed at build time or only at release.</li>
+</ul></div>
+
+    <article class="story"
+             data-search="vantage sso gateway zero-day exploited to mint long-lived session tokens ridgeline security wire" data-url="https://example.invalid/0eaaa9c7">
+      <div class="signal" title="score 4.715 = source 1.15 x recency 0.901 x keywords 4.0 x corroboration 1.0 x depth 1.137">
+<span class="seg on"></span><span class="seg on"></span><span class="seg on"></span><span class="seg on"></span>        <span class="val">4.71</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/0eaaa9c7" target="_blank" rel="noopener noreferrer">Vantage SSO gateway zero-day exploited to mint long-lived session tokens</a></h3>
+        <div class="meta">
+          <span class="src">Ridgeline Security Wire</span>
+          <span>3h ago</span>
+<span>6 min read</span><span class="chip hit">zero-day</span><span class="chip hit">exploit</span><span class="chip hit">identity</span>        </div>
+
+        <details class="summary">
+          <summary>extract_insights</summary>
+          <div class="summary-body"><h4 class="label">Summary</h4>
+<p>Ridgeline reports active exploitation of a token-forging flaw in Vantage identity gateways, with a vendor patch now available.</p>
+<h4 class="label">Ideas</h4>
+<ul>
+<li>The flaw is in token issuance, not token validation, so refreshing signing keys does not evict an attacker who already minted credentials.</li>
+<li>Session lifetime is doing more security work in most environments than anyone intended, and nobody owns that setting.</li>
+<li>Detection lands on session anomalies rather than the exploit itself, which means identity telemetry is the only reliable signal here.</li>
+<li>Organizations that log token issuance separately from authentication events found this faster than organizations that log only logins.</li>
+<li>The seven-day remediation window in the advisory is shorter than the average change window at mid-market companies, which is the real operational story.</li>
+</ul>
+<h4 class="label">Insights</h4>
+<ul>
+<li>Patching closes the door but does not evict anyone already inside; credential revocation is a separate, often unrehearsed procedure.</li>
+<li>Identity infrastructure sits outside most patch SLAs because it is classified as a platform rather than an application.</li>
+</ul>
+<h4 class="label">Recommendations</h4>
+<ul>
+<li>Inventory every gateway version and confirm token signing key rotation is part of the response, not just the upgrade.</li>
+<li>Rehearse mass session revocation before you need it, and time how long it takes end to end.</li>
+<li>Add token issuance volume to the alerting baseline so anomalies surface without a signature.</li>
+</ul></div>
+        </details>
+
+      </div>
+    </article>
+    <article class="story"
+             data-search="emergency advisory issued for vantage identity gateway after confirmed exploitation northwind threat desk" data-url="https://example.invalid/7ffcc7ec">
+      <div class="signal" title="score 4.301 = source 1.35 x recency 0.841 x keywords 3.4 x corroboration 1.0 x depth 1.114">
+<span class="seg on"></span><span class="seg on"></span><span class="seg on"></span><span class="seg on"></span>        <span class="val">4.30</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/7ffcc7ec" target="_blank" rel="noopener noreferrer">Emergency advisory issued for Vantage identity gateway after confirmed exploitation</a></h3>
+        <div class="meta">
+          <span class="src">Northwind Threat Desk</span>
+          <span>5h ago</span>
+<span>4 min read</span><span class="chip hit">exploit</span><span class="chip hit">identity</span>        </div>
+
+        <p class="blurb">A national advisory confirms exploitation in the wild and sets a seven-day remediation deadline.</p>
+
+      </div>
+    </article>
+    <article class="story"
+             data-search="ransomware crew pivots from phishing to poisoning shared build pipelines ridgeline security wire" data-url="https://example.invalid/fb10f8b4">
+      <div class="signal" title="score 2.122 = source 1.15 x recency 0.574 x keywords 2.8 x corroboration 1.0 x depth 1.147">
+<span class="seg on"></span><span class="seg on"></span><span class="seg"></span><span class="seg"></span>        <span class="val">2.12</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/fb10f8b4" target="_blank" rel="noopener noreferrer">Ransomware crew pivots from phishing to poisoning shared build pipelines</a></h3>
+        <div class="meta">
+          <span class="src">Ridgeline Security Wire</span>
+          <span>16h ago</span>
+<span>9 min read</span><span class="chip hit">ransomware</span><span class="chip hit">supply chain</span>        </div>
+
+        <details class="summary">
+          <summary>extract_insights</summary>
+          <div class="summary-body"><h4 class="label">Summary</h4>
+<p>A ransomware group reached forty downstream vendors by compromising one shared build pipeline and inserting an unsigned artifact.</p>
+<h4 class="label">Ideas</h4>
+<ul>
+<li>The economics changed: one pipeline compromise now yields better returns than forty phishing campaigns.</li>
+<li>Unsigned build artifacts remain common in internal pipelines because signing is treated as a release-time control rather than a build-time one.</li>
+<li>Downstream vendors detected the compromise through dependency drift, not through malware signatures.</li>
+</ul>
+<h4 class="label">Recommendations</h4>
+<ul>
+<li>Treat build systems as production identity infrastructure and apply the same access review cadence.</li>
+<li>Require artifact signing at build time, and fail closed when a signature is missing.</li>
+</ul></div>
+        </details>
+
+      </div>
+    </article>
+    <article class="story"
+             data-search="quarterly patch cadence study finds mid-market lags on identity components beacon labs" data-url="https://example.invalid/2d3c62ed">
+      <div class="signal" title="score 0.445 = source 1.0 x recency 0.177 x keywords 2.2 x corroboration 1.0 x depth 1.145">
+<span class="seg on"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>        <span class="val">0.45</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/2d3c62ed" target="_blank" rel="noopener noreferrer">Quarterly patch cadence study finds mid-market lags on identity components</a></h3>
+        <div class="meta">
+          <span class="src">Beacon Labs</span>
+          <span>2d ago</span>
+<span>8 min read</span><span class="chip hit">identity</span>        </div>
+
+        <p class="blurb">Survey of 400 organizations shows identity infrastructure patched later than endpoints, on average.</p>
+
+      </div>
+    </article>
+    <article class="story"
+             data-search="cloud posture agents disabled by new malware family before encryption stage beacon labs" data-url="https://example.invalid/3f042f02">
+      <div class="signal" title="score 0.443 = source 1.0 x recency 0.392 x keywords 1.0 x corroboration 1.0 x depth 1.128">
+<span class="seg on"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>        <span class="val">0.44</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/3f042f02" target="_blank" rel="noopener noreferrer">Cloud posture agents disabled by new malware family before encryption stage</a></h3>
+        <div class="meta">
+          <span class="src">Beacon Labs</span>
+          <span>1d ago</span>
+<span>5 min read</span>        </div>
+
+        <p class="blurb">The loader disables monitoring agents on cloud workloads, then waits nine days before acting.</p>
+
+      </div>
+    </article>
+  </section>
+  <section class="topic" id="ai">
+    <header class="topic-head">
+      <div class="eyebrow">
+        <span>02</span>
+        <span>4 stories</span>
+<span class="pattern">extract_wisdom</span>      </div>
+      <h2>AI Engineering & Governance</h2>
+    </header>
+
+    <div class="brief"><p>Local inference on CPU is now practical for extraction and summarization work if the model stays resident and the context window is sized deliberately. Evaluation is shifting away from general benchmarks toward task-specific harnesses, which matters more than any single model release this week. Agent reliability problems keep showing up at tool boundaries rather than inside reasoning, pointing at contracts as the fix. A draft governance framework would require provenance logs tying every automated decision to a prompt, model version and reviewer. Taken together, the practical move is to instrument what your pipeline already does before adding capability to it.</p></div>
+
+    <article class="story"
+             data-search="budgeting context windows for agent loops on cpu-only hardware practical inference" data-url="https://example.invalid/5abf3e83">
+      <div class="signal" title="score 3.399 = source 1.3 x recency 0.812 x keywords 2.8 x corroboration 1.0 x depth 1.15">
+<span class="seg on"></span><span class="seg on"></span><span class="seg on"></span><span class="seg on"></span>        <span class="val">3.40</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/5abf3e83" target="_blank" rel="noopener noreferrer">Budgeting context windows for agent loops on CPU-only hardware</a></h3>
+        <div class="meta">
+          <span class="src">Practical Inference</span>
+          <span>6h ago</span>
+<span>14 min read</span><span class="chip hit">agent</span><span class="chip hit">quantization</span>        </div>
+
+        <details class="summary">
+          <summary>extract_wisdom</summary>
+          <div class="summary-body"><h4 class="label">Summary</h4>
+<p>A practical guide to running agent loops on commodity CPUs, covering quantization tradeoffs, prompt caching, and model residency.</p>
+<h4 class="label">Ideas</h4>
+<ul>
+<li>On CPU, time to first token is dominated by model load, so keeping a model resident matters more than raw quantization level.</li>
+<li>Q4 quantization holds up well for summarization and extraction, and degrades noticeably on multi-step arithmetic.</li>
+<li>Context window size is a memory decision before it is a quality decision; oversized windows slow every request in the loop.</li>
+<li>Batching several short pattern runs against one resident model beats running one large synthesis pass.</li>
+<li>Reasoning models emit substantial hidden output that you pay for in latency even when you discard it.</li>
+</ul>
+<h4 class="label">Insights</h4>
+<ul>
+<li>The right unit of optimization for a local pipeline is the run, not the request. Keep the model warm and let the queue do the work.</li>
+</ul>
+<h4 class="label">Recommendations</h4>
+<ul>
+<li>Set keep-alive long enough to span an entire batch run rather than a single call.</li>
+<li>Measure tokens per second at your actual context size, not at the default.</li>
+</ul></div>
+        </details>
+
+      </div>
+    </article>
+    <article class="story"
+             data-search="evaluation harness compares small open-weight models on retrieval-heavy tasks open weights weekly" data-url="https://example.invalid/a210c6f3">
+      <div class="signal" title="score 1.39 = source 1.1 x recency 0.5 x keywords 2.2 x corroboration 1.0 x depth 1.149">
+<span class="seg on"></span><span class="seg on"></span><span class="seg"></span><span class="seg"></span>        <span class="val">1.39</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/a210c6f3" target="_blank" rel="noopener noreferrer">Evaluation harness compares small open-weight models on retrieval-heavy tasks</a></h3>
+        <div class="meta">
+          <span class="src">Open Weights Weekly</span>
+          <span>20h ago</span>
+<span>10 min read</span><span class="chip hit">evaluation</span>        </div>
+
+        <p class="blurb">Results suggest task-specific evaluation beats general benchmarks for summarization workloads.</p>
+
+      </div>
+    </article>
+    <article class="story"
+             data-search="why agent evaluation keeps failing at the seams between tools practical inference" data-url="https://example.invalid/365d11fe">
+      <div class="signal" title="score 1.103 = source 1.3 x recency 0.218 x keywords 3.4 x corroboration 1.0 x depth 1.147">
+<span class="seg on"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>        <span class="val">1.10</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/365d11fe" target="_blank" rel="noopener noreferrer">Why agent evaluation keeps failing at the seams between tools</a></h3>
+        <div class="meta">
+          <span class="src">Practical Inference</span>
+          <span>1d ago</span>
+<span>9 min read</span><span class="chip hit">agent</span><span class="chip hit">evaluation</span>        </div>
+
+        <p class="blurb">Most agent failures happen in handoffs, not in reasoning. The fix is better tool contracts.</p>
+
+      </div>
+    </article>
+    <article class="story"
+             data-search="draft governance framework asks for provenance logs on every model-assisted decision policy signals" data-url="https://example.invalid/0abe9c7a">
+      <div class="signal" title="score 0.96 = source 1.2 x recency 0.319 x keywords 2.2 x corroboration 1.0 x depth 1.142">
+<span class="seg on"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>        <span class="val">0.96</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/0abe9c7a" target="_blank" rel="noopener noreferrer">Draft governance framework asks for provenance logs on every model-assisted decision</a></h3>
+        <div class="meta">
+          <span class="src">Policy Signals</span>
+          <span>1d ago</span>
+<span>7 min read</span><span class="chip hit">governance</span>        </div>
+
+        <p class="blurb">The draft would require organizations to retain prompt, model version and reviewer for automated decisions.</p>
+
+      </div>
+    </article>
+  </section>
+  <section class="topic" id="delivery">
+    <header class="topic-head">
+      <div class="eyebrow">
+        <span>03</span>
+        <span>3 stories</span>
+<span class="pattern">extract_main_idea</span>      </div>
+      <h2>Engineering Leadership & Delivery</h2>
+    </header>
+
+
+    <article class="story"
+             data-search="the architecture decision record is only useful if you write down what you rejected ledger of practice" data-url="https://example.invalid/7e56487e">
+      <div class="signal" title="score 2.746 = source 1.3 x recency 0.66 x keywords 2.8 x corroboration 1.0 x depth 1.143">
+<span class="seg on"></span><span class="seg on"></span><span class="seg on"></span><span class="seg on"></span>        <span class="val">2.75</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/7e56487e" target="_blank" rel="noopener noreferrer">The architecture decision record is only useful if you write down what you rejected</a></h3>
+        <div class="meta">
+          <span class="src">Ledger of Practice</span>
+          <span>12h ago</span>
+<span>7 min read</span><span class="chip hit">team</span><span class="chip hit">architecture</span>        </div>
+
+        <p class="blurb">Teams that record rejected options revisit fewer settled debates in the following quarter.</p>
+
+      </div>
+    </article>
+    <article class="story"
+             data-search="delivery teams are measuring throughput while their bottleneck sits in review ledger of practice" data-url="https://example.invalid/e449d507">
+      <div class="signal" title="score 1.844 = source 1.3 x recency 0.366 x keywords 3.4 x corroboration 1.0 x depth 1.14">
+<span class="seg on"></span><span class="seg on"></span><span class="seg on"></span><span class="seg"></span>        <span class="val">1.84</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/e449d507" target="_blank" rel="noopener noreferrer">Delivery teams are measuring throughput while their bottleneck sits in review</a></h3>
+        <div class="meta">
+          <span class="src">Ledger of Practice</span>
+          <span>1d ago</span>
+<span>7 min read</span><span class="chip hit">team</span><span class="chip hit">delivery</span>        </div>
+
+        <p class="blurb">A look at where work actually waits, and why cycle time reads better than velocity.</p>
+
+      </div>
+    </article>
+    <article class="story"
+             data-search="onboarding is a system, not a checklist craft & cadence" data-url="https://example.invalid/29c3d9de">
+      <div class="signal" title="score 0.222 = source 1.0 x recency 0.196 x keywords 1.0 x corroboration 1.0 x depth 1.134">
+<span class="seg on"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>        <span class="val">0.22</span>
+      </div>
+
+      <div class="body">
+        <h3><a href="https://example.invalid/29c3d9de" target="_blank" rel="noopener noreferrer">Onboarding is a system, not a checklist</a></h3>
+        <div class="meta">
+          <span class="src">Craft & Cadence</span>
+          <span>1d ago</span>
+<span>6 min read</span>        </div>
+
+        <p class="blurb">New engineers reach first meaningful commit faster when the first task is chosen, not assigned.</p>
+
+      </div>
+    </article>
+  </section>
+</main>
+
+<script>
+(function () {
+  const stories = () => [...document.querySelectorAll('.story:not([hidden])')];
+  const filter = document.getElementById('filter');
+  let cursor = -1;
+
+  function focusAt(i) {
+    const list = stories();
+    if (!list.length) return;
+    cursor = Math.max(0, Math.min(list.length - 1, i));
+    list.forEach(s => s.classList.remove('cursor'));
+    const el = list[cursor];
+    el.classList.add('cursor');
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.target === filter) {
+      if (e.key === 'Escape') { filter.value = ''; applyFilter(); filter.blur(); }
+      return;
+    }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    if (e.key === '/') { e.preventDefault(); filter.focus(); return; }
+    if (e.key === 'j') { e.preventDefault(); focusAt(cursor + 1); return; }
+    if (e.key === 'k') { e.preventDefault(); focusAt(cursor - 1); return; }
+    if (e.key === 'g') { window.scrollTo({ top: 0 }); cursor = -1; return; }
+    if (e.key === 'G') { window.scrollTo({ top: document.body.scrollHeight }); return; }
+
+    const list = stories();
+    const el = list[cursor];
+    if ((e.key === 'o' || e.key === 'Enter') && el) {
+      e.preventDefault(); window.open(el.dataset.url, '_blank', 'noopener'); return;
+    }
+    if (e.key === 's' && el) {
+      e.preventDefault();
+      const d = el.querySelector('details');
+      if (d) d.open = !d.open;
+      return;
+    }
+    if (/^[1-9]$/.test(e.key)) {
+      const link = document.querySelectorAll('nav a')[Number(e.key) - 1];
+      if (link) { e.preventDefault(); document.getElementById(link.dataset.slug).scrollIntoView(); cursor = -1; }
+    }
+  });
+
+  function applyFilter() {
+    const q = filter.value.trim().toLowerCase();
+    document.querySelectorAll('.story').forEach(s => {
+      s.hidden = q && !s.dataset.search.includes(q);
+      if (s.hidden) s.classList.remove('cursor');
+    });
+    document.querySelectorAll('.topic').forEach(t => {
+      t.hidden = q && !t.querySelector('.story:not([hidden])');
+    });
+    cursor = -1;
+  }
+  filter.addEventListener('input', applyFilter);
+
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const now = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = now;
+    try { localStorage.setItem('newsdesk-theme', now); } catch (_) {}
+  });
+  try {
+    const saved = localStorage.getItem('newsdesk-theme');
+    if (saved) document.documentElement.dataset.theme = saved;
+  } catch (_) {}
+
+  let expanded = false;
+  document.getElementById('expand-all').addEventListener('click', e => {
+    expanded = !expanded;
+    document.querySelectorAll('details.summary').forEach(d => { d.open = expanded; });
+    e.target.textContent = expanded ? 'Collapse all' : 'Expand all';
+  });
+
+  const seen = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      document.querySelectorAll('nav a').forEach(a =>
+        a.classList.toggle('active', a.dataset.slug === en.target.id));
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('.topic').forEach(t => seen.observe(t));
+})();
+</script>
+</body>
+</html>

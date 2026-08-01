@@ -1,0 +1,6 @@
+<?xml version="1.0"?><rss version="2.0"><channel>
+<title>Beta Threat Desk</title><link>https://example.test</link><description>fixture</description>
+<item><title>Zero-day in SSO gateway under active exploitation, CISA advisory issued</title><link>https://example.test/b1?utm_source=rss</link>
+<pubDate>Sat, 01 Aug 2026 13:17:59 +0000</pubDate><description><![CDATA[CISA published an advisory after confirming active exploitation of the identity gateway CVE.]]></description></item>
+<item><title>New malware family targets cloud security posture tools</title><link>https://example.test/b2</link>
+<pubDate>Fri, 31 Jul 2026 19:17:59 +0000</pubDate><description><![CDATA[Researchers documented malware that disables agents on cloud workloads.]]></description></item></channel></rss>

@@ -1,0 +1,23 @@
+[project]
+name = "newsdesk"
+version = "1.0.0"
+description = "A configurable daily news board driven by Fabric patterns"
+requires-python = ">=3.11"
+dependencies = [
+    "feedparser>=6.0.11",
+    "trafilatura>=2.0.0",
+    "requests>=2.31",
+    "PyYAML>=6.0",
+    "Jinja2>=3.1",
+]
+
+[project.scripts]
+newsdesk = "newsdesk.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["newsdesk"]
+include-package-data = true
