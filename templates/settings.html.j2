@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{ title }} · Sources</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+{% include "_shared.css.j2" %}
+.settings-topic{border-top:2px solid var(--ink); padding-top:.6rem; margin-bottom:2.5rem}
+.settings-topic .topic-toggle{
+  display:flex; align-items:center; gap:.6rem; margin-bottom:1rem; cursor:pointer;
+}
+.settings-topic h2{
+  font-family:var(--sans); font-weight:700; font-size:1.4rem; letter-spacing:-.01em; margin:0;
+}
+.src-row{
+  display:flex; align-items:center; gap:.6rem; padding:.55rem 0;
+  border-bottom:1px solid var(--rule-soft); font-family:var(--mono); font-size:.85rem; cursor:pointer;
+}
+.src-row .name{flex:1; font-family:var(--sans); font-size:.92rem; color:var(--ink)}
+.src-row .weight{color:var(--ink-3); font-size:.72rem}
+.src-row.off{opacity:.45}
+.back-link{
+  font-family:var(--mono); font-size:.72rem; text-decoration:none; color:var(--ink-2);
+}
+.back-link:hover{color:var(--accent)}
+.note{font-family:var(--mono); font-size:.68rem; color:var(--ink-3); margin-top:1rem}
+.rebuild-log{
+  font-family:var(--mono); font-size:.68rem; color:var(--ink-3); margin-top:.6rem;
+  white-space:pre-wrap; max-height:12rem; overflow-y:auto;
+}
+</style>
+</head>
+<body>
+
+<aside class="rail">
+  <div class="masthead">
+    <h1 class="wordmark">{{ title }}</h1>
+    <div class="rule"></div>
+    <div class="edition">Sources &amp; topics</div>
+  </div>
+
+  <div><a class="back-link" href="/">&larr; back to the board</a></div>
+
+  <div class="rail-foot">
+    <div class="tools">
+      <button id="rebuild" type="button">Rebuild now</button>
+    </div>
+    <div id="rebuild-log" class="rebuild-log" hidden></div>
+    <p class="note">Changes apply on the next build.</p>
+  </div>
+</aside>
+
+<main>
+  {% for t in topics %}
+  <section class="settings-topic">
+    <label class="topic-toggle">
+      <input type="checkbox" data-type="topic" data-id="{{ t.slug }}" {% if t.enabled %}checked{% endif %}>
+      <h2>{{ t.name }}</h2>
+    </label>
+    {% for s in t.sources %}
+    <label class="src-row{% if not s.enabled %} off{% endif %}">
+      <input type="checkbox" data-type="source" data-id="{{ s.key }}" {% if s.enabled %}checked{% endif %}>
+      <span class="name">{{ s.name }}</span>
+      <span class="weight">weight {{ s.weight }}</span>
+    </label>
+    {% endfor %}
+  </section>
+  {% else %}
+  <p class="empty">No topics configured.</p>
+  {% endfor %}
+</main>
+
+<script>
+(function () {
+  document.querySelectorAll('input[type=checkbox][data-type]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const row = cb.closest('.src-row');
+      const prev = cb.checked;
+      fetch('/api/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({type: cb.dataset.type, id: cb.dataset.id, enabled: cb.checked}),
+      }).then(r => {
+        if (!r.ok) throw new Error('toggle failed');
+        if (row) row.classList.toggle('off', !cb.checked);
+      }).catch(() => { cb.checked = !prev; });
+    });
+  });
+
+  const log = document.getElementById('rebuild-log');
+  const button = document.getElementById('rebuild');
+  let timer = null;
+
+  function poll() {
+    fetch('/api/rebuild/status').then(r => r.json()).then(s => {
+      log.hidden = false;
+      log.textContent = s.status + (s.log_tail ? '\n' + s.log_tail : '');
+      if (s.status === 'running') {
+        timer = setTimeout(poll, 1500);
+      } else {
+        button.disabled = false;
+      }
+    });
+  }
+
+  button.addEventListener('click', () => {
+    button.disabled = true;
+    clearTimeout(timer);
+    fetch('/api/rebuild', {method: 'POST'}).then(poll);
+  });
+})();
+</script>
+</body>
+</html>
