@@ -39,13 +39,35 @@ def main() -> int:
     check("missing state file means nothing disabled",
           loaded == {"disabled_topics": set(), "disabled_sources": set()})
 
-    # --- save + load round-trip ---------------------------------------------
+    # --- save + load round-trip (verify atomic write still works) -------
     p = tmp / "test.state.json"
     state.save(p, {"disabled_topics": {"business"}, "disabled_sources": {"security|https://a.test/feed"}})
     round_tripped = state.load(p)
     check("round-trip preserves disabled topics", round_tripped["disabled_topics"] == {"business"})
     check("round-trip preserves disabled sources",
           round_tripped["disabled_sources"] == {"security|https://a.test/feed"})
+
+    # --- load: corrupted JSON file ------------------------------------------
+    corrupted = tmp / "corrupted.state.json"
+    corrupted.write_text("{ this is not valid json }", encoding="utf-8")
+    loaded = state.load(corrupted)
+    check("corrupted JSON file returns empty default",
+          loaded == {"disabled_topics": set(), "disabled_sources": set()})
+
+    # --- load: unreadable file (simulated via partial write) ---------------
+    partial = tmp / "partial.state.json"
+    partial.write_text('{"disabled_topics": ["b', encoding="utf-8")
+    loaded = state.load(partial)
+    check("partial/truncated JSON file returns empty default",
+          loaded == {"disabled_topics": set(), "disabled_sources": set()})
+
+    # --- set_enabled: invalid kind -----------------------------------------
+    p3 = tmp / "invalid_kind.state.json"
+    try:
+        state.set_enabled(p3, "invalid_kind", "foo", True)
+        check("set_enabled rejects invalid kind", False, "no exception raised")
+    except ValueError as e:
+        check("set_enabled rejects invalid kind", "invalid_kind" in str(e))
 
     # --- set_enabled ----------------------------------------------------------
     p2 = tmp / "toggle.state.json"
