@@ -57,14 +57,18 @@ class StubProvider(summarize.Provider):
 def main() -> int:
     base, httpd = serve_fixtures()
     tmp = Path(tempfile.mkdtemp(prefix="newsdesk-test-"))
+    # Forward slashes only: on Windows, tmp's backslashes would land inside a
+    # double-quoted YAML string below and get parsed as escape sequences
+    # (e.g. \U expects 8 hex digits), breaking the config load.
+    tmp_posix = tmp.as_posix()
 
     cfg_text = f"""
 profile: {{timezone: America/Edmonton}}
 llm: {{provider: none, max_items_per_run: 20}}
-patterns: {{cache_dir: "{tmp}/patterns-cache", local_dir: "{tmp}/patterns"}}
+patterns: {{cache_dir: "{tmp_posix}/patterns-cache", local_dir: "{tmp_posix}/patterns"}}
 scoring: {{half_life_hours: 20, corroboration_bonus: 0.35, keyword_weight: 0.6,
            title_multiplier: 2.0, max_age_hours: 96}}
-output: {{dir: "{tmp}/out", db: "{tmp}/test.sqlite3", keep_days: 30, title: Newsdesk}}
+output: {{dir: "{tmp_posix}/out", db: "{tmp_posix}/test.sqlite3", keep_days: 30, title: Newsdesk}}
 topic_defaults: {{max_items: 8, min_score: 0.0}}
 topics:
   - name: Security & Threat Intel

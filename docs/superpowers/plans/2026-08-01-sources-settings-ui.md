@@ -676,9 +676,14 @@ def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="newsdesk-webapp-test-"))
     (tmp / "out").mkdir()
     (tmp / "out" / "index.html").write_text("<h1>board</h1>")
+    # Forward slashes only: on Windows, tmp's backslashes would land inside a
+    # double-quoted YAML string below and get parsed as escape sequences
+    # (e.g. \U expects 8 hex digits), breaking the config load. See the same
+    # fix already applied in tests/test_pipeline.py.
+    tmp_posix = tmp.as_posix()
 
     cfg_text = f"""
-output: {{dir: "{tmp}/out", db: "{tmp}/test.sqlite3", title: Newsdesk}}
+output: {{dir: "{tmp_posix}/out", db: "{tmp_posix}/test.sqlite3", title: Newsdesk}}
 topics:
   - name: Security
     slug: security
