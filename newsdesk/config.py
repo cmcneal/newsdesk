@@ -9,6 +9,8 @@ from typing import Any
 
 import yaml
 
+from . import state as state_mod
+
 ENV_RE = re.compile(r"\$\{([A-Z0-9_]+)(?::-([^}]*))?\}")
 
 
@@ -94,14 +96,32 @@ class Config:
         d.update(self.raw.get("output", {}))
         return d
 
-    @property
-    def topics(self) -> list[Topic]:
+    def all_topics(self) -> list[Topic]:
+        """Every topic/source in config.yaml, ignoring settings-UI toggles.
+        Used by the settings page itself, which needs to show disabled
+        entries (with their checkbox unchecked), not hide them."""
         defaults = self.raw.get("topic_defaults", {}) or {}
         out = []
         for t in self.raw.get("topics", []):
             merged = {**defaults, **t}
             merged.setdefault("pattern", self.patterns["default"])
             out.append(Topic(**merged))
+        return out
+
+    @property
+    def topics(self) -> list[Topic]:
+        """Topics/sources with settings-UI toggles applied. This is what
+        every command (build, doctor, topics, last30days, serve) should use."""
+        disabled = state_mod.load(state_mod.state_path(self.path))
+        out = []
+        for topic in self.all_topics():
+            if topic.slug in disabled["disabled_topics"]:
+                continue
+            topic.sources = [
+                s for s in topic.sources
+                if state_mod.source_key(topic.slug, s.url) not in disabled["disabled_sources"]
+            ]
+            out.append(topic)
         return out
 
     def resolve(self, rel: str) -> Path:

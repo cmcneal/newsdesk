@@ -90,6 +90,59 @@ def main() -> int:
     check("shared URL: re-enabling one topic's copy leaves the other disabled",
           state.load(p2)["disabled_sources"] == {other_key})
 
+    # --- Config.topics integration ------------------------------------------
+    from newsdesk import config as config_mod
+
+    cfg_dir = tmp / "cfgtest"
+    cfg_dir.mkdir()
+    cfg_text = """
+topics:
+  - name: Security
+    slug: security
+    sources:
+      - {url: "https://a.test/feed", name: A, weight: 1.0}
+      - {url: "https://shared.test/feed", name: Shared, weight: 1.0}
+  - name: Deep Reads
+    slug: deep
+    sources:
+      - {url: "https://shared.test/feed", name: Shared, weight: 1.0}
+      - {url: "https://b.test/feed", name: B, weight: 1.0}
+"""
+    cfg_path = cfg_dir / "config.yaml"
+    cfg_path.write_text(cfg_text)
+
+    cfg = config_mod.load(cfg_path)
+    check("no state file: all_topics == topics count",
+          len(cfg.all_topics()) == len(cfg.topics) == 2)
+
+    state_file = state.state_path(cfg_path)
+    state.set_enabled(state_file, "topic", "deep", False)
+    cfg = config_mod.load(cfg_path)
+    check("disabled topic dropped from .topics", [t.slug for t in cfg.topics] == ["security"])
+    check("disabled topic still present in .all_topics",
+          sorted(t.slug for t in cfg.all_topics()) == ["deep", "security"])
+    state.set_enabled(state_file, "topic", "deep", True)
+
+    # shared URL across two topics: disabling it in `security` must not
+    # remove it from `deep`
+    shared_in_security = state.source_key("security", "https://shared.test/feed")
+    state.set_enabled(state_file, "source", shared_in_security, False)
+    cfg = config_mod.load(cfg_path)
+    sec = next(t for t in cfg.topics if t.slug == "security")
+    deep = next(t for t in cfg.topics if t.slug == "deep")
+    check("source disabled in one topic is gone from that topic",
+          "Shared" not in [s.name for s in sec.sources], str([s.name for s in sec.sources]))
+    check("same source URL still present in the other topic",
+          "Shared" in [s.name for s in deep.sources], str([s.name for s in deep.sources]))
+    check("security topic still has its other source",
+          "A" in [s.name for s in sec.sources])
+
+    # stale state entry (topic/source no longer in config) is a harmless no-op
+    state.set_enabled(state_file, "topic", "no-such-topic", False)
+    cfg = config_mod.load(cfg_path)
+    check("stale disabled-topic entry does not error and topics still resolve",
+          sorted(t.slug for t in cfg.topics) == ["deep", "security"])
+
     print(f"\n{'-' * 60}")
     if FAILED:
         print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
