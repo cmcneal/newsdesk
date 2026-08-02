@@ -76,9 +76,9 @@ then build.
 
 Filtering per topic:
 
-- `include` — gates and boosts. With `require_match: true`, a story needs at least one.
-- `boost` — boosts only, never gates. Use for your specific stack and region.
-- `exclude` — drops the story outright. Use for sponsored content and vendor guides.
+- `include`: gates and boosts. With `require_match: true`, a story needs at least one.
+- `boost`: boosts only, never gates. Use for your specific stack and region.
+- `exclude`: drops the story outright. Use for sponsored content and vendor guides.
 
 ## Patterns
 
@@ -104,7 +104,7 @@ topic's `pattern` and only the new pattern runs.
 The summarization pass wants CPU and RAM; serving the page wants neither. Build on a
 workstation, publish to whatever is always on.
 
-**systemd (build host)** — `~/.config/systemd/user/newsdesk.service`:
+**systemd (build host)**, at `~/.config/systemd/user/newsdesk.service`:
 
 ```ini
 [Unit]
@@ -172,7 +172,7 @@ Reasoning models that emit `<think>` blocks are handled; only the answer is stor
 | `o` or `Enter` | Open the story |
 | `s` | Toggle the summary |
 | `/` | Filter headlines and sources |
-| `1`–`9` | Jump to a topic |
+| `1`-`9` | Jump to a topic |
 | `g` / `G` | Top / bottom |
 
 Hover any signal meter for the score breakdown. Editions are archived under
@@ -183,12 +183,12 @@ Hover any signal meter for the score breakdown. Editions are archived under
 `newsdesk serve` exposes a `/settings` page (linked from the board's rail) for
 turning sources and topics on and off without hand-editing YAML. Toggles are
 stored in a small sidecar file next to your config (`my.state.json` for
-`my.yaml`) — `config.yaml`/`my.yaml` itself is never rewritten, so your
+`my.yaml`); `config.yaml`/`my.yaml` itself is never rewritten, so your
 comments and formatting survive. A change takes effect on the next build; the
 settings page has its own "Rebuild now" button if you don't want to switch to
 a terminal.
 
-Weights, keywords, and patterns are still config.yaml territory — the
+Weights, keywords, and patterns are still config.yaml territory: the
 settings page only toggles what's already there.
 
 `--host 0.0.0.0` (for serving to your LAN) exposes `/settings` too, including
@@ -230,7 +230,7 @@ uv run python -m tests.test_webapp
 only for the first Fabric pattern fetch. `test_state` and `test_webapp` are network-free.
 
 A full pre-rendered board is checked in at [`sample-board.html`](sample-board.html) if you
-want to see the output without running a build first — open it directly in a browser.
+want to see the output without running a build first: open it directly in a browser.
 
 ## Known edges
 

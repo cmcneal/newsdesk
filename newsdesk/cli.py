@@ -221,11 +221,11 @@ def cmd_last30days(args) -> int:
         "edition": f"last-{days}d",
         "edition_long": f"Last {days} days · as of {local_now.strftime('%A, %d %B %Y · %H:%M %Z')}",
         "built_at": local_now.strftime("%H:%M"),
-        "model": "—",
+        "model": "-",
         "scanned": scanned,
         "sources_ok": 0,
         "sources_failed": 0,
-        "duration": "—",
+        "duration": "-",
     }
 
     path = render.render(views, {}, cfg, meta, link_as_index=False)
