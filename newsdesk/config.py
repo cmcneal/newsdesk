@@ -66,6 +66,13 @@ class Config:
     path: Path
 
     # --- convenience accessors -------------------------------------------
+    # Each property below merges hardcoded defaults with whatever the user's
+    # config.yaml overrides, so every key always has a value and callers
+    # never need `.get(key, default)` at every use site. Adding a new
+    # top-level config.yaml section (a `foo:` block) generally means adding
+    # a matching `foo` property here following the same
+    # `d = {...defaults...}; d.update(self.raw.get("foo", {})); return d`
+    # shape as `patterns`/`scoring`/`output` below.
     @property
     def profile(self) -> dict:
         return self.raw.get("profile", {})

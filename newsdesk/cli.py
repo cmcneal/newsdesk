@@ -77,6 +77,10 @@ def cmd_build(args) -> int:
         log.warning("LLM unavailable (%s). Building without summaries.", why)
         provider = summarize.NoneProvider()
 
+    # `budget` is a global cap on LLM calls per run (llm.max_items_per_run),
+    # shared across all topics. Topics are processed in config.yaml order and
+    # spend from the same pool, so a topic listed earlier gets first claim on
+    # the budget if the run is large enough to hit the cap.
     budget = int(cfg.llm.get("max_items_per_run", 40))
     views, digests, scanned = [], {}, 0
 

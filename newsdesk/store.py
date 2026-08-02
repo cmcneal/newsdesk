@@ -66,6 +66,10 @@ CREATE TABLE IF NOT EXISTS feed_state (
 
 
 def article_id(url: str, title: str) -> str:
+    # Title is hashed in alongside the URL, not just the URL alone, because
+    # publishers reuse the same URL for an updated/replaced story (breaking
+    # news pages, live blogs). Keying on both means an edited headline is
+    # treated as a new article rather than silently overwriting the old one.
     return hashlib.sha1(f"{normalize_url(url)}|{title.strip().lower()}".encode()).hexdigest()[:16]
 
 
@@ -184,6 +188,9 @@ class Store:
 
     def save_feed_state(self, url: str, etag=None, last_modified=None, error=None) -> None:
         prev = self.feed_state(url)
+        # error_count is a streak, not a lifetime total: any successful fetch
+        # (error=None) resets it to 0. `doctor` and error-count-based alerting
+        # only care about "how many times in a row has this feed been down."
         errors = (prev.get("error_count") or 0) + 1 if error else 0
         self._exec(
             "INSERT OR REPLACE INTO feed_state (url, etag, last_modified, last_ok, last_error, error_count)"

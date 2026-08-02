@@ -112,6 +112,10 @@ def rank(store: Store, topic: Topic, cfg_scoring: dict) -> list[dict]:
         cid = member_of.get(row["id"], row["id"])
         corroboration = 1 + cfg_scoring["corroboration_bonus"] * (sizes.get(cid, 1) - 1)
         words = row["word_count"] or 0
+        # tanh saturates the bonus instead of letting it grow without bound:
+        # a 5000-word feature scores almost the same depth bonus as a
+        # 2000-word one, so an extremely long piece can't dominate purely on
+        # length. Caps out at a 15% bonus (0.15 * tanh's max of 1).
         depth = 1 + 0.15 * math.tanh(words / 900) if words else 1.0
 
         score = (row["source_weight"] or 1.0) * recency * keyword * corroboration * depth

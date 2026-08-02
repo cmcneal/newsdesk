@@ -89,6 +89,13 @@ def relative_time(stamp: str | None) -> str:
 
 
 def signal_blocks(score: float, ceiling: float, segments: int = 4) -> int:
+    """How many of the signal meter's segments to light up.
+
+    Relative to `ceiling` (the topic's own top score for this edition), not
+    an absolute scale, so a quiet topic's best story still shows a full
+    meter and a busy topic's stories spread across the full range instead
+    of all clustering near empty.
+    """
     if ceiling <= 0:
         return 1
     return max(1, min(segments, round(segments * (score / ceiling)) or 1))

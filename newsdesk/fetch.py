@@ -149,6 +149,9 @@ def collect(topics: list[Topic], store: Store, workers: int = 8,
             continue
         seen.add(item["canonical_url"])
         if store.by_id(item["id"]):
+            # Already stored from a previous run: skip it here rather than
+            # relying on upsert_article's INSERT OR IGNORE further down, so
+            # the (slow) full-text fetch below never runs for it either.
             continue
         fresh.append((topic, item))
 
