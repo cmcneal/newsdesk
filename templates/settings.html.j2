@@ -77,6 +77,11 @@
 
 <script>
 (function () {
+  try {
+    const saved = localStorage.getItem('newsdesk-theme');
+    if (saved) document.documentElement.dataset.theme = saved;
+  } catch (_) {}
+
   document.querySelectorAll('input[type=checkbox][data-type]').forEach(cb => {
     cb.addEventListener('change', () => {
       const row = cb.closest('.src-row');
