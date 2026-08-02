@@ -63,32 +63,37 @@ def read_feed(source: Source, store: Store) -> list[dict]:
         log.warning("feed %s returned HTTP %s", source.name, resp.status_code)
         return []
 
-    parsed = feedparser.parse(resp.content)
+    try:
+        parsed = feedparser.parse(resp.content)
+        items = []
+        feed_title = parsed.feed.get("title", source.name)
+        for entry in parsed.entries:
+            link = entry.get("link") or entry.get("id")
+            title = strip_html(entry.get("title"), 300)
+            if not link or not title:
+                continue
+            blurb = strip_html(entry.get("summary") or
+                               (entry.get("content") or [{}])[0].get("value"))
+            items.append({
+                "id": article_id(link, title),
+                "url": link,
+                "canonical_url": normalize_url(link),
+                "title": title,
+                "source": source.name or feed_title,
+                "source_weight": source.weight,
+                "author": strip_html(entry.get("author"), 120) or None,
+                "published_at": _published(entry),
+                "fetched_at": now(),
+                "blurb": blurb,
+                "_full_text": source.full_text and not source.paywalled,
+            })
+    except Exception as exc:  # noqa: BLE001 - one malformed feed must not kill the run
+        store.save_feed_state(source.url, error=f"parse failed: {exc}")
+        log.warning("feed %s failed to parse: %s", source.name, exc)
+        return []
+
     store.save_feed_state(source.url, etag=resp.headers.get("ETag"),
                           last_modified=resp.headers.get("Last-Modified"))
-
-    items = []
-    feed_title = parsed.feed.get("title", source.name)
-    for entry in parsed.entries:
-        link = entry.get("link") or entry.get("id")
-        title = strip_html(entry.get("title"), 300)
-        if not link or not title:
-            continue
-        blurb = strip_html(entry.get("summary") or
-                           (entry.get("content") or [{}])[0].get("value"))
-        items.append({
-            "id": article_id(link, title),
-            "url": link,
-            "canonical_url": normalize_url(link),
-            "title": title,
-            "source": source.name or feed_title,
-            "source_weight": source.weight,
-            "author": strip_html(entry.get("author"), 120) or None,
-            "published_at": _published(entry),
-            "fetched_at": now(),
-            "blurb": blurb,
-            "_full_text": source.full_text and not source.paywalled,
-        })
     log.info("%s: %d entries", source.name, len(items))
     return items
 
@@ -118,13 +123,23 @@ def collect(topics: list[Topic], store: Store, workers: int = 8,
     counts = {t.slug: 0 for t in topics}
     pending: list[tuple[Topic, dict]] = []
 
+    # Two topics can share a source URL (e.g. schneier.com/feed under both
+    # "security" and "deep"). Fetch each unique URL once so concurrent jobs
+    # don't race on the same feed_state row, then fan the result out to
+    # every topic that lists it.
+    unique_sources = {s.url: s for _, s in jobs}
     with futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        results = {pool.submit(read_feed, s, store): t for t, s in jobs}
-        for fut in futures.as_completed(results):
-            topic = results[fut]
-            for item in fut.result():
-                item["topic"] = topic.slug
-                pending.append((topic, item))
+        futures_by_url = {pool.submit(read_feed, s, store): url
+                          for url, s in unique_sources.items()}
+        results_by_url: dict[str, list[dict]] = {}
+        for fut in futures.as_completed(futures_by_url):
+            results_by_url[futures_by_url[fut]] = fut.result()
+
+    for topic, source in jobs:
+        for item in results_by_url[source.url]:
+            item = dict(item)
+            item["topic"] = topic.slug
+            pending.append((topic, item))
 
     # Dedupe within this run: first topic to claim a URL keeps it.
     seen: set[str] = set()
@@ -137,9 +152,9 @@ def collect(topics: list[Topic], store: Store, workers: int = 8,
             continue
         fresh.append((topic, item))
 
+    # `.pop` here also strips "_full_text" as a side effect, so every item
+    # in `fresh` is clean of it by the time downstream code sees it.
     want_body = [(t, i) for t, i in fresh if i.pop("_full_text", False)]
-    for _, item in fresh:
-        item.pop("_full_text", None)
 
     with futures.ThreadPoolExecutor(max_workers=workers) as pool:
         bodies = {pool.submit(extract_body, i["url"]): i for _, i in want_body}

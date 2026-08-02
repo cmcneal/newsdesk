@@ -132,6 +132,6 @@ class Config:
 
 def load(path: str | Path = "config.yaml") -> Config:
     path = Path(path).expanduser().resolve()
-    with open(path) as fh:
+    with open(path, encoding="utf-8") as fh:
         raw = _expand(yaml.safe_load(fh) or {})
     return Config(raw=raw, path=path)

@@ -65,7 +65,12 @@ class PatternLibrary:
             if required:
                 raise PatternError(f"pattern '{name}' not found in {self.repo}@{self.ref}")
             return None
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as exc:
+            if required:
+                raise PatternError(f"cannot fetch pattern '{name}': {exc}") from exc
+            return None
 
         cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_text(resp.text, encoding="utf-8")

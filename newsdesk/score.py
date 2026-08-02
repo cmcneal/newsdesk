@@ -89,7 +89,9 @@ def cluster(rows, threshold: float = 0.40, min_shared: int = 3) -> dict[str, lis
 
 def rank(store: Store, topic: Topic, cfg_scoring: dict) -> list[dict]:
     """Score every recent article in a topic. Writes scores back to the store."""
-    half_life = cfg_scoring["half_life_hours"]
+    # A misconfigured (zero or negative) half_life_hours would divide by zero
+    # below; clamp instead of crashing the whole build over one bad number.
+    half_life = max(cfg_scoring["half_life_hours"], 1e-6)
     rows = [r for r in store.recent(topic.slug, hours=cfg_scoring["max_age_hours"])
             if not excluded(r, topic)]
 

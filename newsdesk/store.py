@@ -131,7 +131,10 @@ class Store:
         self._exec(f"UPDATE articles SET {sets} WHERE id=:id", {**fields, "id": aid})
 
     def recent(self, topic: str | None = None, hours: int = 96) -> list[sqlite3.Row]:
-        cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        # timespec="seconds" matches now()'s precision: stored timestamps
+        # never carry microseconds, so the cutoff can't either, or a string
+        # comparison against a stored value from the same second sorts wrong.
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
         sql = ("SELECT * FROM articles WHERE COALESCE(published_at, fetched_at) >= ? "
                + ("AND topic = ? " if topic else "")
                + "ORDER BY score DESC, published_at DESC")
@@ -189,7 +192,7 @@ class Store:
              prev.get("last_ok") if error else now(), error, errors))
 
     def prune(self, keep_days: int) -> int:
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=keep_days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=keep_days)).isoformat(timespec="seconds")
         cur = self._exec(
             "DELETE FROM articles WHERE saved=0 AND COALESCE(published_at, fetched_at) < ?", (cutoff,))
         self._exec("DELETE FROM summaries WHERE article_id NOT IN (SELECT id FROM articles)")

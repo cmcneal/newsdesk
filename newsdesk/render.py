@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import html
-import json
 import re
 import shutil
 from datetime import datetime, timezone
@@ -152,9 +151,6 @@ def render(views: list[dict], digests: dict[str, str], cfg, meta: dict,
         views=views,
         digests={k: md_to_html(v) for k, v in digests.items()},
         meta=meta,
-        search_index=json.dumps([
-            {"id": c["id"], "t": c["title"], "s": c["source"], "k": v["slug"]}
-            for v in views for c in v["cards"]]),
     )
 
     dated = out_dir / "editions" / f"{edition}.html"

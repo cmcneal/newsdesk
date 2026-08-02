@@ -150,11 +150,16 @@ def summarize_articles(items, store, provider, library, pattern: str,
 def digest_topic(items, store, provider, library, topic, edition: str,
                  pattern: str, top_n: int = 8, force: bool = False) -> str:
     """One synthesized 'what matters today' brief per topic."""
-    if isinstance(provider, NoneProvider) or not pattern:
+    if not pattern:
         return ""
     cached = store.get_digest(edition, topic.slug)
     if cached and not force:
         return cached
+    if isinstance(provider, NoneProvider):
+        # Can't generate a new digest without a model, but a `--no-llm` or
+        # LLM-unavailable rebuild shouldn't blank out a digest already
+        # cached from an earlier run today.
+        return cached or ""
 
     lines = []
     for i, item in enumerate(items[:top_n], 1):
