@@ -9,6 +9,8 @@ The point of difference versus a feed reader: **the ranking shows its work**. Ev
 story carries a signal meter, and hovering it gives you the exact multiplication that
 put it there. Nothing is a black box you have to trust.
 
+![The newsdesk board: a topic rail on the left, ranked stories with signal meters on the right](sample-board.png)
+
 ```
 feeds ──> fetch ──> rank ──> Fabric patterns ──> static HTML
           (etag)   (explain)  (cached forever)   (one file per day)
@@ -231,6 +233,8 @@ only for the first Fabric pattern fetch. `test_state` and `test_webapp` are netw
 
 A full pre-rendered board is checked in at [`sample-board.html`](sample-board.html) if you
 want to see the output without running a build first: open it directly in a browser.
+The screenshot at the top of this README (`sample-board.png`) is a static capture of
+that same page.
 
 ## Known edges
 
