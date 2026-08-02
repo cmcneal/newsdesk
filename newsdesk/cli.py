@@ -235,14 +235,17 @@ def cmd_last30days(args) -> int:
 
 # ---------------------------------------------------------------- serve
 def cmd_serve(args) -> int:
-    import functools
-    import http.server
     import socketserver
+    from . import webapp
     cfg, _, _ = _setup(args)
     root = cfg.resolve(cfg.output["dir"])
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
+    rebuild_cmd = [sys.executable, "-m", "newsdesk.cli", "-c", str(cfg.path), "build"]
+    job = webapp.RebuildJob(rebuild_cmd)
+    handler = webapp.make_handler(cfg.path, root, job)
+    display_host = "localhost" if args.host == "0.0.0.0" else args.host
     with socketserver.TCPServer((args.host, args.port), handler) as httpd:
-        print(f"serving {root} at http://{args.host}:{args.port}/")
+        print(f"serving {root} at http://{display_host}:{args.port}/  "
+              f"(settings: http://{display_host}:{args.port}/settings)")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
@@ -280,7 +283,8 @@ def main(argv=None) -> int:
     l30.set_defaults(func=cmd_last30days)
 
     s = sub.add_parser("serve", help="serve the output directory")
-    s.add_argument("--host", default="0.0.0.0")
+    s.add_argument("--host", default="127.0.0.1",
+                   help="bind address (default 127.0.0.1; use 0.0.0.0 to serve on the LAN)")
     s.add_argument("--port", type=int, default=8787)
     s.set_defaults(func=cmd_serve)
 
