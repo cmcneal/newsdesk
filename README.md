@@ -200,26 +200,37 @@ localhost on a network you don't trust.
 ```
 config.yaml           topics, sources, patterns, scoring   <- the whole product surface
 newsdesk/
-  config.py           config loading, env expansion
+  config.py           config loading, env expansion, settings-UI toggle filtering
+  state.py            sidecar state file for settings-UI toggles (never touches config.yaml)
   store.py            SQLite: articles, summaries, digests, feed state
   fetch.py            feeds (conditional GET) + full-text extraction
   score.py            ranking and cross-source clustering
   patterns.py         Fabric pattern loader and cache
   summarize.py        providers (ollama / anthropic / none) + pattern execution
   render.py           markdown subset + static HTML
+  webapp.py           /settings backend: rendering, toggle API, rebuild trigger
   cli.py              build / doctor / patterns / topics / serve / last30days
 templates/
+  _shared.css.j2       CSS shared by the board and the settings page
   dashboard.html.j2   the board
+  settings.html.j2    the settings page (served at /settings)
 tests/
   test_pipeline.py    end-to-end against local fixture feeds
+  test_state.py        settings-UI state file + config filtering
+  test_webapp.py       settings page backend, end-to-end over a real socket
 ```
 
 ```bash
 uv run python -m tests.test_pipeline
+uv run python -m tests.test_state
+uv run python -m tests.test_webapp
 ```
 
-Runs the whole pipeline against fixture feeds on localhost. Needs network only for the
-first Fabric pattern fetch.
+`test_pipeline` runs the whole pipeline against fixture feeds on localhost. Needs network
+only for the first Fabric pattern fetch. `test_state` and `test_webapp` are network-free.
+
+A full pre-rendered board is checked in at [`sample-board.html`](sample-board.html) if you
+want to see the output without running a build first — open it directly in a browser.
 
 ## Known edges
 
