@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a `/settings` page to `newsdesk serve` that lets you enable/disable sources and topics without editing YAML, plus a "Rebuild now" button — and fix `serve` printing an unusable `http://0.0.0.0:8787/` URL.
+**Goal:** Add a `/settings` page to `newsdesk serve` that lets you enable/disable sources and topics without editing YAML, plus a "Rebuild now" button, and fix `serve` printing an unusable `http://0.0.0.0:8787/` URL.
 
 **Architecture:** Toggle state lives in a JSON sidecar file next to the active config (never rewrites `config.yaml`/`my.yaml`). `Config.topics` filters against it at load time so every command respects it. `newsdesk serve` grows a small stdlib-only HTTP handler (`newsdesk/webapp.py`) that serves the existing static board plus `/settings` and a tiny JSON API. The settings page reuses the board's exact CSS via a new shared partial.
 
@@ -14,17 +14,17 @@
 
 ## File Structure
 
-- Create: `newsdesk/state.py` — sidecar state file read/write, topic-scoped source keys
-- Create: `newsdesk/webapp.py` — settings page rendering, JSON API, rebuild subprocess tracking
-- Create: `templates/_shared.css.j2` — CSS extracted from `dashboard.html.j2`, included by both templates
-- Create: `templates/settings.html.j2` — the settings page
-- Modify: `newsdesk/config.py` — `Config.topics` filters via `state.py`; new `Config.all_topics()` for the unfiltered list
-- Modify: `newsdesk/cli.py` — `cmd_serve` uses `webapp.py`, `--host` defaults to `127.0.0.1`, printed URL always usable
-- Modify: `templates/dashboard.html.j2` — `<style>` becomes an include of `_shared.css.j2`; rail gets a "Sources" link
-- Create: `tests/test_state.py` — state.py + Config filtering, including the shared-URL-across-topics case
-- Create: `tests/test_webapp.py` — end-to-end against a real running handler, same style as `tests/test_pipeline.py`
-- Modify: `.gitignore` — ignore `*.state.json`
-- Modify: `README.md` — document `/settings`, the rebuild button, and the corrected `serve` host default
+- Create: `newsdesk/state.py`: sidecar state file read/write, topic-scoped source keys
+- Create: `newsdesk/webapp.py`: settings page rendering, JSON API, rebuild subprocess tracking
+- Create: `templates/_shared.css.j2`: CSS extracted from `dashboard.html.j2`, included by both templates
+- Create: `templates/settings.html.j2`: the settings page
+- Modify: `newsdesk/config.py`: `Config.topics` filters via `state.py`; new `Config.all_topics()` for the unfiltered list
+- Modify: `newsdesk/cli.py`: `cmd_serve` uses `webapp.py`, `--host` defaults to `127.0.0.1`, printed URL always usable
+- Modify: `templates/dashboard.html.j2`: `<style>` becomes an include of `_shared.css.j2`; rail gets a "Sources" link
+- Create: `tests/test_state.py`: state.py + Config filtering, including the shared-URL-across-topics case
+- Create: `tests/test_webapp.py`: end-to-end against a real running handler, same style as `tests/test_pipeline.py`
+- Modify: `.gitignore`: ignore `*.state.json`
+- Modify: `README.md`: document `/settings`, the rebuild button, and the corrected `serve` host default
 
 ---
 
@@ -77,7 +77,7 @@ git add -A
 git status
 ```
 
-Review the `git status` output before committing — this repo currently has `my.yaml` (personal, hand-tuned config) and `newsdesk.zip` sitting in the working tree. Confirm with the user whether either should be excluded before committing; don't commit them silently if in doubt.
+Review the `git status` output before committing: this repo currently has `my.yaml` (personal, hand-tuned config) and `newsdesk.zip` sitting in the working tree. Confirm with the user whether either should be excluded before committing; don't commit them silently if in doubt.
 
 ```bash
 git commit -m "chore: initial commit"
@@ -85,7 +85,7 @@ git commit -m "chore: initial commit"
 
 ---
 
-### Task 2: `newsdesk/state.py` — sidecar state file
+### Task 2: `newsdesk/state.py` - sidecar state file
 
 **Files:**
 - Create: `newsdesk/state.py`
@@ -323,7 +323,7 @@ topics:
           sorted(t.slug for t in cfg.topics) == ["deep", "security"] or True)
 ```
 
-Note the last check is intentionally permissive (`or True`) — its only job is to prove `cfg.topics` doesn't raise when the state file references a topic slug that no longer exists in `config.yaml`. Remove the `or True` once you confirm it also returns the sane two-topic list (it should, since the stale slug never matches).
+Note the last check is intentionally permissive (`or True`): its only job is to prove `cfg.topics` doesn't raise when the state file references a topic slug that no longer exists in `config.yaml`. Remove the `or True` once you confirm it also returns the sane two-topic list (it should, since the stale slug never matches).
 
 - [ ] **Step 2: Run to confirm the new assertions fail**
 
@@ -392,7 +392,7 @@ Expected: `all checks passed`
 - [ ] **Step 5: Run the existing pipeline test to confirm nothing broke**
 
 Run: `uv run python -m tests.test_pipeline`
-Expected: `all checks passed` (this exercises `cfg.topics` end-to-end with no state file present — the "everything enabled" path)
+Expected: `all checks passed` (this exercises `cfg.topics` end-to-end with no state file present, the "everything enabled" path)
 
 - [ ] **Step 6: Commit**
 
@@ -411,7 +411,7 @@ git commit -m "feat: Config.topics filters by settings-UI toggle state"
 
 - [ ] **Step 1: Create `templates/_shared.css.j2`**
 
-Cut the entire CSS ruleset currently between `<style>` and `</style>` in `templates/dashboard.html.j2` (lines 12–218, everything from `:root{` through the `@media print{...}` rule) into this new file, verbatim, with one addition: extend the `.tools button` rules so a plain `<a>` styled as a tool button (used by the new "Sources" link) matches. Change:
+Cut the entire CSS ruleset currently between `<style>` and `</style>` in `templates/dashboard.html.j2` (lines 12-218, everything from `:root{` through the `@media print{...}` rule) into this new file, verbatim, with one addition: extend the `.tools button` rules so a plain `<a>` styled as a tool button (used by the new "Sources" link) matches. Change:
 
 ```css
 .tools button{
@@ -434,7 +434,7 @@ to:
 .tools button:hover, .tools a:hover{border-color:var(--accent); color:var(--accent)}
 ```
 
-Every other rule is copied unchanged — do not reflow, reformat, or "clean up" while moving it. This is a mechanical extraction, not a rewrite.
+Every other rule is copied unchanged: do not reflow, reformat, or "clean up" while moving it. This is a mechanical extraction, not a rewrite.
 
 - [ ] **Step 2: Replace the `<style>` block in `templates/dashboard.html.j2`**
 
@@ -480,7 +480,7 @@ Replace with:
 - [ ] **Step 4: Verify the board still renders correctly**
 
 Run: `uv run python -m tests.test_pipeline`
-Expected: `all checks passed` — in particular the `"index written"` and `"topics present in html"` checks confirm the template still renders with the include resolved.
+Expected: `all checks passed`: in particular the `"index written"` and `"topics present in html"` checks confirm the template still renders with the include resolved.
 
 - [ ] **Step 5: Commit**
 
@@ -627,11 +627,11 @@ git add templates/settings.html.j2
 git commit -m "feat: add settings page template"
 ```
 
-(No test yet — this template is exercised end-to-end in Task 6.)
+(No test yet: this template is exercised end-to-end in Task 6.)
 
 ---
 
-### Task 6: `newsdesk/webapp.py` — rendering, API, rebuild tracking
+### Task 6: `newsdesk/webapp.py` - rendering, API, rebuild tracking
 
 **Files:**
 - Create: `newsdesk/webapp.py`
@@ -942,7 +942,7 @@ def make_handler(cfg_path: Path, static_dir: Path, rebuild_job: RebuildJob):
 Run: `uv run python -m tests.test_webapp`
 Expected: `all checks passed`
 
-If `"rebuild finishes"` is flaky/times out, the most likely cause is `_drain` reading from a `Popen` created inside the `with self._lock` block but the thread started outside it referencing `self._proc` — re-check the thread target receives `proc` as an explicit argument (as written above), not `self._proc`, since a second `start()` call could otherwise race with the drain thread reading a stale reference.
+If `"rebuild finishes"` is flaky/times out, the most likely cause is `_drain` reading from a `Popen` created inside the `with self._lock` block but the thread started outside it referencing `self._proc`: re-check the thread target receives `proc` as an explicit argument (as written above), not `self._proc`, since a second `start()` call could otherwise race with the drain thread reading a stale reference.
 
 - [ ] **Step 5: Commit**
 
@@ -1027,7 +1027,7 @@ Replace with:
 
 Run: `uv run newsdesk -c my.yaml build --no-llm --no-fetch` (or against whatever config/db you already have locally), then `uv run newsdesk -c my.yaml serve`
 
-Expected: prints `serving ... at http://127.0.0.1:8787/  (settings: http://127.0.0.1:8787/settings)`. Open both URLs in a browser — the board loads, and `/settings` shows every topic and source with working checkboxes. Toggle one off, reload `/settings`, confirm it stayed off. Click "Rebuild now" and confirm the log area shows progress and finishes.
+Expected: prints `serving ... at http://127.0.0.1:8787/  (settings: http://127.0.0.1:8787/settings)`. Open both URLs in a browser: the board loads, and `/settings` shows every topic and source with working checkboxes. Toggle one off, reload `/settings`, confirm it stayed off. Click "Rebuild now" and confirm the log area shows progress and finishes.
 
 Then re-run with `--host 0.0.0.0` and confirm the printed URL still says `localhost`, not `0.0.0.0`.
 
@@ -1081,12 +1081,12 @@ Insert after the existing "Using the board" section (after the `Hover any signal
 `newsdesk serve` exposes a `/settings` page (linked from the board's rail) for
 turning sources and topics on and off without hand-editing YAML. Toggles are
 stored in a small sidecar file next to your config (`my.state.json` for
-`my.yaml`) — `config.yaml`/`my.yaml` itself is never rewritten, so your
+`my.yaml`); `config.yaml`/`my.yaml` itself is never rewritten, so your
 comments and formatting survive. A change takes effect on the next build; the
 settings page has its own "Rebuild now" button if you don't want to switch to
 a terminal.
 
-Weights, keywords, and patterns are still config.yaml territory — the
+Weights, keywords, and patterns are still config.yaml territory: the
 settings page only toggles what's already there.
 
 `--host 0.0.0.0` (for serving to your LAN) exposes `/settings` too, including
