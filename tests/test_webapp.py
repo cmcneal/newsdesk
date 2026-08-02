@@ -92,6 +92,12 @@ topics:
     status, data = request("POST", "/api/toggle", {"type": "bogus", "id": "x", "enabled": False})
     check("toggle rejects an unknown type", status == 400)
 
+    status, data = request("POST", "/api/toggle", 5)
+    check("toggle rejects a non-dict JSON body (int)", status == 400, f"status={status}")
+
+    status, data = request("POST", "/api/toggle", [1, 2, 3])
+    check("toggle rejects a non-dict JSON body (list)", status == 400, f"status={status}")
+
     # --- api/rebuild ------------------------------------------------------------
     status, data = request("POST", "/api/rebuild")
     check("rebuild starts", status == 200 and json.loads(data)["status"] == "started")

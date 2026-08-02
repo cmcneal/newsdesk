@@ -138,13 +138,13 @@ def make_handler(cfg_path: Path, static_dir: Path, rebuild_job: RebuildJob):
             self.wfile.write(body)
 
         def _toggle(self) -> None:
-            length = int(self.headers.get("Content-Length", 0))
             try:
+                length = int(self.headers.get("Content-Length", 0))
                 payload = json.loads(self.rfile.read(length) or b"{}")
                 kind, key, enabled = payload["type"], payload["id"], bool(payload["enabled"])
                 if kind not in ("topic", "source"):
                     raise ValueError("type must be 'topic' or 'source'")
-            except (json.JSONDecodeError, KeyError, ValueError) as exc:
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError) as exc:
                 self._json(400, {"error": str(exc)})
                 return
             new_state = state_mod.set_enabled(state_mod.state_path(cfg_path), kind, key, enabled)
