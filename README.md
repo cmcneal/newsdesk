@@ -49,7 +49,7 @@ Everything except the summaries works.
 | `doctor` | HEAD every feed, warm every pattern, ping the model. Exit code is the problem count. |
 | `patterns` | List available Fabric patterns and what is cached. `--warm all` pre-downloads. |
 | `topics` | Print the current ranking as text, with scores. The fastest way to tune. |
-| `serve` | Static file server over the output directory. |
+| `serve` | Serves the board plus a `/settings` page for toggling sources and topics. |
 | `last30days` | Best-of-window digest from stored articles. Does not overwrite today's build. |
 | `last30days --days 7` | Same, over the last 7 days. |
 | `last30days --topic security` | One topic only. Repeatable. |
@@ -177,6 +177,23 @@ Reasoning models that emit `<think>` blocks are handled; only the answer is stor
 
 Hover any signal meter for the score breakdown. Editions are archived under
 `out/editions/YYYY-MM-DD.html`.
+
+## Sources & topics from the browser
+
+`newsdesk serve` exposes a `/settings` page (linked from the board's rail) for
+turning sources and topics on and off without hand-editing YAML. Toggles are
+stored in a small sidecar file next to your config (`my.state.json` for
+`my.yaml`) — `config.yaml`/`my.yaml` itself is never rewritten, so your
+comments and formatting survive. A change takes effect on the next build; the
+settings page has its own "Rebuild now" button if you don't want to switch to
+a terminal.
+
+Weights, keywords, and patterns are still config.yaml territory — the
+settings page only toggles what's already there.
+
+`--host 0.0.0.0` (for serving to your LAN) exposes `/settings` too, including
+the rebuild trigger. There's no auth; keep that in mind before binding beyond
+localhost on a network you don't trust.
 
 ## Layout
 
