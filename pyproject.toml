@@ -19,6 +19,9 @@ dependencies = [
 [project.scripts]
 newsdesk = "newsdesk.cli:main"
 
+[project.urls]
+Repository = "https://github.com/cmcneal/newsdesk"
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
