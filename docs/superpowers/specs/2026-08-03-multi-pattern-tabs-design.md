@@ -79,14 +79,41 @@ if not self.digest_patterns and self.digest_pattern:
     self.digest_patterns = [self.digest_pattern]
 ```
 
+**This only works correctly if `self.pattern` is empty whenever a topic
+already defines `pattern_tiers`.** Today, `Config.all_topics()` unconditionally
+does `merged.setdefault("pattern", self.patterns["default"])` before
+constructing every `Topic`, so `self.pattern` is never actually empty (it
+defaults to `"extract_insights"`) unless a topic explicitly sets
+`pattern: ""`. Left as-is, that pre-existing `setdefault` would make the
+synthesis above fire for *every* topic, even ones that already define
+`pattern_tiers`, silently clobbering an explicit `pattern_tiers: []` (meant
+to mean "no per-article summarization for this topic") back to a single
+tier built from the stale default pattern. `Config.all_topics()` therefore
+also changes:
+
+```python
+for t in self.raw.get("topics", []):
+    merged = {**defaults, **t}
+    if "pattern_tiers" not in merged:
+        merged.setdefault("pattern", self.patterns["default"])
+    out.append(Topic(**merged))
+```
+
+Now `self.pattern` only ever gets a default value injected when the merged
+topic dict has no `pattern_tiers` key at all, so an explicit
+`pattern_tiers: []` (or any other explicit `pattern_tiers` value) is never
+overridden by the old default-pattern machinery.
+
 This means `my.yaml` (which still uses the old singular keys) keeps working
 unmigrated: it just gets a single-tier, single-digest-pattern topic, exactly
 today's behavior. `config.yaml` (the shipped template) is updated to the new
 list-based shape directly as part of this change, dropping the topic-specific
 specialty patterns some topics use today (`security`'s
-`create_network_threat_landscape`, `deep`'s `create_reading_plan`) in favor
-of the same four patterns applied uniformly, matching what was asked for.
-If you want a topic to keep a specialty pattern, add it to that topic's own
+`create_network_threat_landscape`, `deep`'s `create_reading_plan`) from that
+topic's own config in favor of the same four patterns applied uniformly,
+matching what was asked for. Those two patterns aren't removed from
+anywhere else (see the `CURATED` note below): if you want a topic to keep a
+specialty pattern, add it back to that topic's own
 `digest_patterns`/`pattern_tiers` override.
 
 ### New method: `Topic.patterns_for_rank`
@@ -159,11 +186,46 @@ def _migrate_digests_table(self) -> None:
   stopping the moment the budget is exhausted.
 
 `digest_topic` returns a `dict[str, str]` (`{pattern: output}`) instead of a
-single string, running once per pattern in `topic.digest_patterns`. Its
-article-summary input for the digest prompt picks, per article, the first
-pattern in `topic.patterns_for_rank(i)` that has a cached summary (falling
-back to the blurb if none do) rather than the old single `topic.pattern`
-lookup, since there's no longer one canonical per-article pattern.
+single string. Content-building (the `lines`/`content` construction, which
+reads each article's cached summary) happens at most once regardless of how
+many digest patterns run, since it's the same input for every pattern; only
+the LLM call and cache lookup vary per pattern:
+
+```python
+def digest_topic(items, store, provider, library, topic, edition, top_n=8, force=False) -> dict[str, str]:
+    results: dict[str, str] = {}
+    content = None  # built lazily; same for every pattern, so build it once
+    for pattern in topic.digest_patterns:
+        cached = store.get_digest(edition, topic.slug, pattern)
+        if cached and not force:
+            results[pattern] = cached
+            continue
+        if isinstance(provider, NoneProvider):
+            if cached:
+                results[pattern] = cached
+            continue
+        if content is None:
+            content = _build_digest_content(items, store, topic, edition, top_n)
+            if content is None:  # no items cleared top_n; nothing to digest
+                break
+        try:
+            out = run_pattern(provider, library, pattern, content)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("digest failed for %s (%s): %s", topic.name, pattern, exc)
+            continue
+        if out:
+            store.put_digest(edition, topic.slug, pattern, out, provider.name)
+            results[pattern] = out
+    return results
+```
+
+`_build_digest_content` is today's existing `lines`/`content`-building code
+(the loop over `items[:top_n]` reading each article's summary and blurb),
+extracted unchanged apart from the per-article summary lookup: instead of
+`store.get_summary(row["id"], topic.pattern)`, it picks the first pattern in
+`topic.patterns_for_rank(i)` that has a cached summary (falling back to the
+blurb if none do), since there's no longer one canonical per-article
+pattern to look up.
 
 ## Rendering (`newsdesk/render.py`) and template
 
@@ -240,9 +302,15 @@ is removed so every topic uses the shared defaults, unless a specific topic
 still wants to diverge (documented as an example via a comment, not
 necessarily exercised in the shipped config).
 
-`newsdesk/patterns.py::CURATED["per-topic-digest"]` gains `extract_wisdom`
-and `extract_business_ideas` (both already in `CURATED["per-article"]`), so
-`newsdesk patterns` lists all four as recognized digest options.
+`newsdesk/patterns.py::CURATED["per-topic-digest"]` is purely a suggestion
+list for `newsdesk patterns`/`--warm all`, not a restriction: any pattern
+name works in `digest_patterns` regardless of whether it's listed here.
+It gains `extract_wisdom` and `extract_business_ideas` (both already in
+`CURATED["per-article"]`), growing from 4 entries to 6. The two existing
+specialty entries (`create_network_threat_landscape`, `create_reading_plan`)
+are *not* removed, they remain valid, discoverable choices even though
+`config.yaml` no longer references them by default (see the backward
+compatibility note above on adding them back per-topic).
 
 ## Testing
 
