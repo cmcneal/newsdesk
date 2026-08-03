@@ -104,6 +104,14 @@ topic dict has no `pattern_tiers` key at all, so an explicit
 `pattern_tiers: []` (or any other explicit `pattern_tiers` value) is never
 overridden by the old default-pattern machinery.
 
+If a config mixes old and new keys under the same topic (e.g.
+`topic_defaults` sets `pattern_tiers`, but one topic still also sets its own
+`pattern:`), that topic's `pattern` value is simply inert: since
+`pattern_tiers` is present, synthesis never runs, and the leftover `pattern`
+field is never read by anything else. Not an error, just ignored; worth a
+one-line note in the config comments so it's not a mystery if someone
+notices it later.
+
 This means `my.yaml` (which still uses the old singular keys) keeps working
 unmigrated: it just gets a single-tier, single-digest-pattern topic, exactly
 today's behavior. `config.yaml` (the shipped template) is updated to the new
