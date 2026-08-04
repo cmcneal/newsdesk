@@ -119,10 +119,11 @@ def build_view(topic, ranked, store, cfg) -> dict:
     for i, item in enumerate(items):
         row, parts = item["row"], item["parts"]
         row_summaries = cached.get(row["id"], {})
-        summaries = [
-            {"pattern": p, "label": humanize_pattern(p), "html": md_to_html(text)}
-            for p in topic.patterns_for_rank(i) if (text := row_summaries.get(p))
-        ]
+        summaries = []
+        for p in topic.patterns_for_rank(i):
+            text = row_summaries.get(p)
+            if text:
+                summaries.append({"pattern": p, "label": humanize_pattern(p), "html": md_to_html(text)})
         cards.append({
             "id": row["id"],
             "title": row["title"],
