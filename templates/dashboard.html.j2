@@ -73,14 +73,15 @@
     {% if digests.get(v.slug) %}
     <div class="brief-wrap">
       {% if digests[v.slug]|length > 1 %}
-      <div class="brief-tabs">
+      <div class="brief-tabs" role="tablist">
         {% for pattern, html in digests[v.slug].items() %}
-        <button type="button" class="brief-tab{% if loop.first %} active{% endif %}" data-pattern="{{ pattern }}">{{ pattern|humanize }}</button>
+        <button type="button" class="brief-tab{% if loop.first %} active{% endif %}" data-pattern="{{ pattern }}"
+                role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}" aria-controls="brief-{{ v.slug }}-{{ pattern }}">{{ pattern|humanize }}</button>
         {% endfor %}
       </div>
       {% endif %}
       {% for pattern, html in digests[v.slug].items() %}
-      <div class="brief" data-pattern="{{ pattern }}"{% if not loop.first %} hidden{% endif %}>{{ html|safe }}</div>
+      <div class="brief" id="brief-{{ v.slug }}-{{ pattern }}" data-pattern="{{ pattern }}" role="tabpanel"{% if not loop.first %} hidden{% endif %}>{{ html|safe }}</div>
       {% endfor %}
     </div>
     {% endif %}
@@ -109,14 +110,15 @@
         <details class="summary">
           <summary>{{ c.summaries[0].label }}{% if c.summaries|length > 1 %} ({{ c.summaries|length }}){% endif %}</summary>
           {% if c.summaries|length > 1 %}
-          <div class="summary-tabs">
+          <div class="summary-tabs" role="tablist">
             {% for s in c.summaries %}
-            <button type="button" class="summary-tab{% if loop.first %} active{% endif %}" data-pattern="{{ s.pattern }}">{{ s.label }}</button>
+            <button type="button" class="summary-tab{% if loop.first %} active{% endif %}" data-pattern="{{ s.pattern }}"
+                    role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}" aria-controls="summary-{{ c.id }}-{{ s.pattern }}">{{ s.label }}</button>
             {% endfor %}
           </div>
           {% endif %}
           {% for s in c.summaries %}
-          <div class="summary-body" data-pattern="{{ s.pattern }}"{% if not loop.first %} hidden{% endif %}>{{ s.html|safe }}</div>
+          <div class="summary-body" id="summary-{{ c.id }}-{{ s.pattern }}" data-pattern="{{ s.pattern }}" role="tabpanel"{% if not loop.first %} hidden{% endif %}>{{ s.html|safe }}</div>
           {% endfor %}
         </details>
         {% elif c.blurb %}
@@ -161,6 +163,7 @@
       if (e.key === 'Escape') { filter.value = ''; applyFilter(); filter.blur(); }
       return;
     }
+    if (e.target.tagName === 'BUTTON') return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     if (e.key === '/') { e.preventDefault(); filter.focus(); return; }
@@ -202,7 +205,11 @@
   document.querySelectorAll('.brief-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       const wrap = btn.closest('.brief-wrap');
-      wrap.querySelectorAll('.brief-tab').forEach(b => b.classList.toggle('active', b === btn));
+      wrap.querySelectorAll('.brief-tab').forEach(b => {
+        const selected = b === btn;
+        b.classList.toggle('active', selected);
+        b.setAttribute('aria-selected', selected ? 'true' : 'false');
+      });
       wrap.querySelectorAll('.brief[data-pattern]').forEach(el => {
         el.hidden = el.dataset.pattern !== btn.dataset.pattern;
       });
@@ -212,7 +219,11 @@
   document.querySelectorAll('.summary-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       const details = btn.closest('details.summary');
-      details.querySelectorAll('.summary-tab').forEach(b => b.classList.toggle('active', b === btn));
+      details.querySelectorAll('.summary-tab').forEach(b => {
+        const selected = b === btn;
+        b.classList.toggle('active', selected);
+        b.setAttribute('aria-selected', selected ? 'true' : 'false');
+      });
       details.querySelectorAll('.summary-body').forEach(el => {
         el.hidden = el.dataset.pattern !== btn.dataset.pattern;
       });
