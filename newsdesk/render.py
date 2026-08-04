@@ -101,14 +101,28 @@ def signal_blocks(score: float, ceiling: float, segments: int = 4) -> int:
     return max(1, min(segments, round(segments * (score / ceiling)) or 1))
 
 
+def humanize_pattern(name: str) -> str:
+    """create_5_sentence_summary -> '5 Sentence Summary', extract_wisdom -> 'Wisdom'."""
+    for prefix in ("create_", "extract_", "analyze_", "find_"):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+            break
+    return name.replace("_", " ").title()
+
+
 def build_view(topic, ranked, store, cfg) -> dict:
     """Shape one topic's ranked items into template-ready data."""
     items = ranked[:topic.max_items]
     ceiling = max([i["score"] for i in items], default=1.0)
+    cached = store.summaries_for([item["row"]["id"] for item in items])
     cards = []
-    for item in items:
+    for i, item in enumerate(items):
         row, parts = item["row"], item["parts"]
-        summary = store.get_summary(row["id"], topic.pattern)
+        row_summaries = cached.get(row["id"], {})
+        summaries = [
+            {"pattern": p, "label": humanize_pattern(p), "html": md_to_html(text)}
+            for p in topic.patterns_for_rank(i) if (text := row_summaries.get(p))
+        ]
         cards.append({
             "id": row["id"],
             "title": row["title"],
@@ -120,8 +134,7 @@ def build_view(topic, ranked, store, cfg) -> dict:
             "words": row["word_count"] or 0,
             "read_min": max(1, round((row["word_count"] or 0) / 230)) if row["word_count"] else None,
             "blurb": row["blurb"] or "",
-            "summary_html": md_to_html(summary) if summary else "",
-            "has_summary": bool(summary),
+            "summaries": summaries,
             "score": round(item["score"], 3),
             "blocks": signal_blocks(item["score"], ceiling),
             "parts": parts,
@@ -132,19 +145,18 @@ def build_view(topic, ranked, store, cfg) -> dict:
     return {
         "name": topic.name,
         "slug": topic.slug,
-        "pattern": topic.pattern,
-        "digest_pattern": topic.digest_pattern,
         "count": len(cards),
         "cards": cards,
     }
 
 
-def render(views: list[dict], digests: dict[str, str], cfg, meta: dict,
+def render(views: list[dict], digests: dict[str, dict[str, str]], cfg, meta: dict,
            link_as_index: bool = True) -> Path:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)),
                       autoescape=select_autoescape(["html"]), trim_blocks=True,
                       lstrip_blocks=True)
     env.filters["md"] = md_to_html
+    env.filters["humanize"] = humanize_pattern
     template = env.get_template("dashboard.html.j2")
 
     out_dir = cfg.resolve(cfg.output["dir"])
@@ -156,7 +168,8 @@ def render(views: list[dict], digests: dict[str, str], cfg, meta: dict,
         theme=cfg.output.get("theme", "auto"),
         edition=edition,
         views=views,
-        digests={k: md_to_html(v) for k, v in digests.items()},
+        digests={slug: {pattern: md_to_html(text) for pattern, text in patterns.items()}
+                for slug, patterns in digests.items()},
         meta=meta,
     )
 

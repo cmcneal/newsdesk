@@ -186,6 +186,27 @@ topics:
     check("uncached pattern has no entry when there's nothing to digest",
           "uncached_pattern" not in empty_result, str(empty_result))
 
+    # --- humanize_pattern --------------------------------------------------------
+    check("humanize strips extract_ prefix and title-cases",
+          render_mod.humanize_pattern("extract_business_ideas") == "Business Ideas")
+    check("humanize strips create_ prefix and keeps digits",
+          render_mod.humanize_pattern("create_5_sentence_summary") == "5 Sentence Summary")
+    check("humanize with no known prefix just title-cases",
+          render_mod.humanize_pattern("some_other_pattern") == "Some Other Pattern")
+
+    # --- build_view: multi-summary cards ------------------------------------------
+    ranked_items = [
+        {"row": mp_store.by_id("a0"), "score": 1.0, "parts": {"matched": []}, "also": []},
+        {"row": mp_store.by_id("a1"), "score": 0.5, "parts": {"matched": []}, "also": []},
+    ]
+    view = render_mod.build_view(tiered_topic, ranked_items, mp_store, None)
+    check("top-tier card has two summaries",
+          len(view["cards"][0]["summaries"]) == 2, str(view["cards"][0]["summaries"]))
+    check("summaries are in tier order (extract_insights first)",
+          view["cards"][0]["summaries"][0]["pattern"] == "extract_insights")
+    check("lower-tier card has one summary",
+          len(view["cards"][1]["summaries"]) == 1, str(view["cards"][1]["summaries"]))
+
     print(f"\n{'-' * 60}")
     if FAILED:
         print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
