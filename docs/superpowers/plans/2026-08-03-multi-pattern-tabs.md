@@ -146,8 +146,8 @@ Replace the `Topic` dataclass (currently `newsdesk/config.py:43-60`):
 class Topic:
     name: str
     slug: str = ""
-    pattern: str = ""            # deprecated: use pattern_tiers
-    digest_pattern: str = ""     # deprecated: use digest_patterns
+    pattern: str = ""            # Fabric pattern run per article
+    digest_pattern: str = ""     # Fabric pattern run across the topic's top items
     max_items: int = 8
     min_score: float = 0.0
     include: list[str] = field(default_factory=list)   # keywords that boost + gate
@@ -1328,7 +1328,7 @@ Each topic's `name:`/`slug:` line should now be followed directly by `max_items:
 
 - [ ] **Step 2: Update `newsdesk/patterns.py`**
 
-Find (currently `newsdesk/patterns.py:98-102`):
+Find (currently `newsdesk/patterns.py:103-107`):
 
 ```python
     "per-topic-digest": [
