@@ -44,8 +44,10 @@ class Source:
 class Topic:
     name: str
     slug: str = ""
-    pattern: str = ""            # Fabric pattern run per article
-    digest_pattern: str = ""     # Fabric pattern run across the topic's top items
+    pattern: str = ""            # deprecated: use pattern_tiers
+    digest_pattern: str = ""     # deprecated: use digest_patterns
+    pattern_tiers: list[dict] = field(default_factory=list)
+    digest_patterns: list[str] = field(default_factory=list)
     max_items: int = 8
     min_score: float = 0.0
     include: list[str] = field(default_factory=list)   # keywords that boost + gate
@@ -58,6 +60,28 @@ class Topic:
         if not self.slug:
             self.slug = re.sub(r"[^a-z0-9]+", "-", self.name.lower()).strip("-")
         self.sources = [s if isinstance(s, Source) else Source(**s) for s in self.sources]
+        # Backward compat: the old singular pattern/digest_pattern keys still
+        # work if the new list-based keys weren't given. See
+        # docs/superpowers/specs/2026-08-03-multi-pattern-tabs-design.md.
+        if not self.pattern_tiers and self.pattern:
+            self.pattern_tiers = [{"patterns": [self.pattern]}]
+        if not self.digest_patterns and self.digest_pattern:
+            self.digest_patterns = [self.digest_pattern]
+
+    def patterns_for_rank(self, position: int) -> list[str]:
+        """Which patterns apply to the article at this 0-indexed rank
+        position within the topic, per pattern_tiers. Bands are consumed in
+        order; a band with no "top" is the catch-all for everything
+        remaining and must be the last band."""
+        remaining = position
+        for band in self.pattern_tiers:
+            top = band.get("top")
+            if top is None:
+                return band["patterns"]
+            if remaining < top:
+                return band["patterns"]
+            remaining -= top
+        return []
 
 
 @dataclass
@@ -111,7 +135,12 @@ class Config:
         out = []
         for t in self.raw.get("topics", []):
             merged = {**defaults, **t}
-            merged.setdefault("pattern", self.patterns["default"])
+            # Only fall back to the old default-pattern injection when the
+            # topic has no pattern_tiers at all (from defaults or its own
+            # config) -- otherwise an explicit `pattern_tiers: []` would get
+            # silently overwritten by a stale single-pattern tier below.
+            if "pattern_tiers" not in merged:
+                merged.setdefault("pattern", self.patterns["default"])
             out.append(Topic(**merged))
         return out
 
