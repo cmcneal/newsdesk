@@ -66,13 +66,23 @@
       <div class="eyebrow">
         <span>{{ "%02d"|format(loop.index) }}</span>
         <span>{{ v.count }} stor{{ 'y' if v.count == 1 else 'ies' }}</span>
-        {% if v.pattern %}<span class="pattern">{{ v.pattern }}</span>{% endif %}
       </div>
       <h2>{{ v.name }}</h2>
     </header>
 
     {% if digests.get(v.slug) %}
-    <div class="brief">{{ digests[v.slug]|safe }}</div>
+    <div class="brief-wrap">
+      {% if digests[v.slug]|length > 1 %}
+      <div class="brief-tabs">
+        {% for pattern, html in digests[v.slug].items() %}
+        <button type="button" class="brief-tab{% if loop.first %} active{% endif %}" data-pattern="{{ pattern }}">{{ pattern|humanize }}</button>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% for pattern, html in digests[v.slug].items() %}
+      <div class="brief" data-pattern="{{ pattern }}"{% if not loop.first %} hidden{% endif %}>{{ html|safe }}</div>
+      {% endfor %}
+    </div>
     {% endif %}
 
     {% for c in v.cards %}
@@ -95,10 +105,19 @@
           {% for kw in c.matched[:4] %}<span class="chip hit">{{ kw }}</span>{% endfor %}
         </div>
 
-        {% if c.has_summary %}
+        {% if c.summaries %}
         <details class="summary">
-          <summary>{{ v.pattern }}</summary>
-          <div class="summary-body">{{ c.summary_html|safe }}</div>
+          <summary>{{ c.summaries[0].label }}{% if c.summaries|length > 1 %} ({{ c.summaries|length }}){% endif %}</summary>
+          {% if c.summaries|length > 1 %}
+          <div class="summary-tabs">
+            {% for s in c.summaries %}
+            <button type="button" class="summary-tab{% if loop.first %} active{% endif %}" data-pattern="{{ s.pattern }}">{{ s.label }}</button>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% for s in c.summaries %}
+          <div class="summary-body" data-pattern="{{ s.pattern }}"{% if not loop.first %} hidden{% endif %}>{{ s.html|safe }}</div>
+          {% endfor %}
         </details>
         {% elif c.blurb %}
         <p class="blurb">{{ c.blurb }}</p>
@@ -179,6 +198,26 @@
     cursor = -1;
   }
   filter.addEventListener('input', applyFilter);
+
+  document.querySelectorAll('.brief-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrap = btn.closest('.brief-wrap');
+      wrap.querySelectorAll('.brief-tab').forEach(b => b.classList.toggle('active', b === btn));
+      wrap.querySelectorAll('.brief[data-pattern]').forEach(el => {
+        el.hidden = el.dataset.pattern !== btn.dataset.pattern;
+      });
+    });
+  });
+
+  document.querySelectorAll('.summary-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const details = btn.closest('details.summary');
+      details.querySelectorAll('.summary-tab').forEach(b => b.classList.toggle('active', b === btn));
+      details.querySelectorAll('.summary-body').forEach(el => {
+        el.hidden = el.dataset.pattern !== btn.dataset.pattern;
+      });
+    });
+  });
 
   document.getElementById('theme-toggle').addEventListener('click', () => {
     const now = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
