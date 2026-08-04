@@ -76,6 +76,40 @@ topics:
     check("explicit empty pattern_tiers is not clobbered by the old default pattern",
           topic.pattern_tiers == [], str(topic.pattern_tiers))
 
+    # --- Store digests table migration ----------------------------------------
+    old_db_path = tmp / "old.sqlite3"
+    conn = sqlite3.connect(old_db_path)
+    conn.execute("""
+        CREATE TABLE digests (
+            edition TEXT NOT NULL, topic TEXT NOT NULL, pattern TEXT,
+            model TEXT, output TEXT NOT NULL, created_at TEXT NOT NULL,
+            PRIMARY KEY (edition, topic)
+        )
+    """)
+    conn.execute("INSERT INTO digests VALUES "
+                 "('2026-08-01', 'security', 'old_pattern', 'm', 'old output', 'now')")
+    conn.commit()
+    conn.close()
+
+    store = Store(old_db_path)  # should migrate without raising
+    cols = store.db.execute("PRAGMA table_info(digests)").fetchall()
+    pattern_col = next(c for c in cols if c["name"] == "pattern")
+    check("digests table migrated: pattern is now part of the primary key",
+          pattern_col["pk"] > 0)
+    check("old pre-migration digest row is gone (regeneration is cheap and expected)",
+          store.get_digest("2026-08-01", "security", "old_pattern") is None)
+
+    store.put_digest("2026-08-02", "security", "pattern_a", "output a", "model")
+    store.put_digest("2026-08-02", "security", "pattern_b", "output b", "model")
+    check("two digests for the same edition/topic, different patterns, both stored",
+          store.get_digest("2026-08-02", "security", "pattern_a") == "output a" and
+          store.get_digest("2026-08-02", "security", "pattern_b") == "output b")
+
+    fresh_store = Store(tmp / "fresh.sqlite3")  # no digests table pre-existing at all
+    fresh_cols = fresh_store.db.execute("PRAGMA table_info(digests)").fetchall()
+    check("fresh install: digests table also has pattern in its primary key",
+          next(c for c in fresh_cols if c["name"] == "pattern")["pk"] > 0)
+
     print(f"\n{'-' * 60}")
     if FAILED:
         print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")

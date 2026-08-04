@@ -47,11 +47,11 @@ CREATE TABLE IF NOT EXISTS summaries (
 CREATE TABLE IF NOT EXISTS digests (
     edition     TEXT NOT NULL,
     topic       TEXT NOT NULL,
-    pattern     TEXT,
+    pattern     TEXT NOT NULL,
     model       TEXT,
     output      TEXT NOT NULL,
     created_at  TEXT NOT NULL,
-    PRIMARY KEY (edition, topic)
+    PRIMARY KEY (edition, topic, pattern)
 );
 
 CREATE TABLE IF NOT EXISTS feed_state (
@@ -98,8 +98,22 @@ class Store:
         self.db.execute("PRAGMA journal_mode=WAL")
         self._lock = threading.RLock()
         with self._lock:
+            self._migrate_digests_table()
             self.db.executescript(SCHEMA)
             self.db.commit()
+
+    def _migrate_digests_table(self) -> None:
+        """digests used to key on (edition, topic) alone; multi-pattern
+        digests need pattern in the primary key too. Cached digests are
+        cheap to regenerate, so an old-shaped table is just dropped and
+        recreated by SCHEMA below rather than migrated in place."""
+        cols = self.db.execute("PRAGMA table_info(digests)").fetchall()
+        if not cols:
+            return  # no such table yet; SCHEMA below creates the new shape
+        pattern_col = next((c for c in cols if c["name"] == "pattern"), None)
+        if pattern_col and pattern_col["pk"] > 0:
+            return  # already the new shape
+        self.db.execute("DROP TABLE digests")
 
     def _exec(self, sql: str, args=()):
         with self._lock:
@@ -171,9 +185,10 @@ class Store:
         return out
 
     # --- digests ----------------------------------------------------------
-    def get_digest(self, edition: str, topic: str) -> str | None:
-        rows = self._query("SELECT output FROM digests WHERE edition=? AND topic=?",
-                           (edition, topic))
+    def get_digest(self, edition: str, topic: str, pattern: str) -> str | None:
+        rows = self._query(
+            "SELECT output FROM digests WHERE edition=? AND topic=? AND pattern=?",
+            (edition, topic, pattern))
         return rows[0]["output"] if rows else None
 
     def put_digest(self, edition: str, topic: str, pattern: str, output: str, model: str) -> None:
