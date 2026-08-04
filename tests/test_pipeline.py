@@ -62,12 +62,18 @@ def main() -> int:
     # (e.g. \U expects 8 hex digits), breaking the config load.
     tmp_posix = tmp.as_posix()
 
+    # max_age_hours is set far larger than the default: the fixtures below have
+    # publish dates hardcoded to specific 2026 calendar days, and a tight
+    # max_age_hours would start silently filtering fixture articles out of
+    # store.recent() as real time passes the fixture dates by more than a few
+    # days. Recency-decay behavior is exercised via half_life_hours/score
+    # comparisons below, not by this cutoff, so a generous value is safe here.
     cfg_text = f"""
 profile: {{timezone: America/Edmonton}}
 llm: {{provider: none, max_items_per_run: 20}}
 patterns: {{cache_dir: "{tmp_posix}/patterns-cache", local_dir: "{tmp_posix}/patterns"}}
 scoring: {{half_life_hours: 20, corroboration_bonus: 0.35, keyword_weight: 0.6,
-           title_multiplier: 2.0, max_age_hours: 96}}
+           title_multiplier: 2.0, max_age_hours: 87600}}
 output: {{dir: "{tmp_posix}/out", db: "{tmp_posix}/test.sqlite3", keep_days: 30, title: Newsdesk}}
 topic_defaults: {{max_items: 8, min_score: 0.0}}
 topics:
