@@ -29,7 +29,7 @@ llm:
     keep_alive: 15m              # keeps the model resident across a whole run
 
   anthropic:
-    model: claude-sonnet-4-6
+    model: claude-sonnet-5
     max_tokens: 1600
     api_key_env: ANTHROPIC_API_KEY
 

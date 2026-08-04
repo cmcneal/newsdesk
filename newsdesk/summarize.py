@@ -16,6 +16,17 @@ from .patterns import PatternLibrary
 log = logging.getLogger("newsdesk.summarize")
 
 
+def _raise_with_body(resp: requests.Response) -> None:
+    """requests' default HTTPError drops the response body, which is where
+    API error detail actually lives (e.g. Anthropic's "invalid model" message).
+    Re-raise with that body attached so a failed call is diagnosable straight
+    from the log line, not just "400 Client Error"."""
+    try:
+        resp.raise_for_status()
+    except requests.HTTPError as exc:
+        raise requests.HTTPError(f"{exc} -- {resp.text[:500]}", response=resp) from exc
+
+
 class Provider:
     name = "none"
 
@@ -64,7 +75,7 @@ class OllamaProvider(Provider):
                   "messages": [{"role": "system", "content": system},
                                {"role": "user", "content": user}]},
             timeout=self.timeout)
-        resp.raise_for_status()
+        _raise_with_body(resp)
         text = resp.json().get("message", {}).get("content", "")
         # Reasoning models emit <think> blocks; keep only the answer.
         if "</think>" in text:
@@ -73,7 +84,7 @@ class OllamaProvider(Provider):
 
 
 class AnthropicProvider(Provider):
-    def __init__(self, model="claude-sonnet-4-6", max_tokens=1600,
+    def __init__(self, model="claude-sonnet-5", max_tokens=1600,
                  api_key_env="ANTHROPIC_API_KEY", timeout=180):
         self.model, self.max_tokens, self.timeout = model, max_tokens, timeout
         self.api_key = os.environ.get(api_key_env, "")
@@ -91,7 +102,7 @@ class AnthropicProvider(Provider):
             json={"model": self.model, "max_tokens": self.max_tokens, "system": system,
                   "messages": [{"role": "user", "content": user}]},
             timeout=self.timeout)
-        resp.raise_for_status()
+        _raise_with_body(resp)
         return "".join(b.get("text", "") for b in resp.json().get("content", [])).strip()
 
 
