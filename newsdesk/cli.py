@@ -180,16 +180,20 @@ def cmd_patterns(args) -> int:
 
 
 # --------------------------------------------------------------- topics
+def _tier_desc(tiers: list[dict]) -> str:
+    """Human-readable summary of a topic's pattern_tiers for `newsdesk topics`."""
+    def band_desc(b: dict) -> str:
+        label = f"top {b['top']}" if b.get("top") is not None else "rest"
+        n = len(b["patterns"])
+        return f"{label}: {n} pattern{'s' if n != 1 else ''}"
+    return ", ".join(band_desc(b) for b in tiers) or "none"
+
+
 def cmd_topics(args) -> int:
     cfg, store, _ = _setup(args)
     for t in cfg.topics:
         ranked = score.rank(store, t, cfg.scoring)
-        tier_desc = ", ".join(
-            f"top {b['top']}: {len(b['patterns'])} pattern{'s' if len(b['patterns']) != 1 else ''}"
-            if b.get("top") is not None
-            else f"rest: {len(b['patterns'])} pattern{'s' if len(b['patterns']) != 1 else ''}"
-            for b in t.pattern_tiers) or "none"
-        print(f"\n{t.name}  [{t.slug}]  tiers=[{tier_desc}]  digests={len(t.digest_patterns)}")
+        print(f"\n{t.name}  [{t.slug}]  tiers=[{_tier_desc(t.pattern_tiers)}]  digests={len(t.digest_patterns)}")
         print(f"  {len(t.sources)} sources, {len(ranked)} ranked, showing {t.max_items}")
         for item in ranked[:t.max_items]:
             r, p = item["row"], item["parts"]
