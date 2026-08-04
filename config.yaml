@@ -71,11 +71,11 @@ topic_defaults:
   max_items: 8
   min_score: 0.15
   require_match: true            # false = keep everything the feed carries
-  digest_patterns: [create_5_sentence_summary, extract_wisdom, extract_insights, extract_business_ideas]
+  digest_patterns: [create_micro_summary, extract_wisdom, extract_insights, extract_business_ideas]
   pattern_tiers:
     - top: 3                     # the 3 highest-ranked stories in each topic
-      patterns: [create_5_sentence_summary, extract_wisdom, extract_insights, extract_business_ideas]
-    - patterns: [create_5_sentence_summary]   # everyone else: catch-all, must be last
+      patterns: [create_micro_summary, extract_wisdom, extract_insights, extract_business_ideas]
+    - patterns: [create_micro_summary]   # everyone else: catch-all, must be last
 
 # ---------------------------------------------------------------------------
 # TOPICS

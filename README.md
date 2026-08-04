@@ -92,7 +92,7 @@ the results as tabs so you read to whatever depth you want:
 
 - `pattern_tiers` decides which patterns run on each article, based on its ranked
   position within the topic. A story in the top tier might get all four patterns; a
-  story further down might only get the 5-sentence summary. This keeps the board
+  story further down might only get the baseline micro summary. This keeps the board
   useful for a quick scan of everything while going deep on what actually ranked well.
   Each band is `{top: N, patterns: [...]}`, except the last, which is the catch-all
   (no `top` key) and applies to everything not covered by an earlier band.
@@ -100,9 +100,11 @@ the results as tabs so you read to whatever depth you want:
   top stories for that edition, shown as tabs above the topic's brief.
 
 Both default from `topic_defaults` and can be overridden per topic. The shipped
-`config.yaml` applies `create_5_sentence_summary`, `extract_wisdom`, `extract_insights`,
+`config.yaml` applies `create_micro_summary`, `extract_wisdom`, `extract_insights`,
 and `extract_business_ideas` to every topic's top 3 stories and digest, and just the
-5-sentence summary to the rest.
+micro summary to the rest. Despite the name, `create_5_sentence_summary` is not a
+five-sentence summary, it is Fabric's "5 Levels" pattern (5 words down to 1 word); if
+you want it, use it deliberately rather than as a baseline default.
 
 Override any pattern locally by creating `patterns/<name>/system.md` next to your config.
 A local file always wins over the cached copy. Set `patterns.offline: true` to work from

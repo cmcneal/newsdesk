@@ -94,7 +94,11 @@ class PatternLibrary:
 CURATED = {
     "per-article": [
         "extract_wisdom", "extract_insights", "extract_ideas", "extract_main_idea",
-        "extract_core_message", "extract_article_wisdom", "create_5_sentence_summary",
+        "extract_core_message", "extract_article_wisdom", "create_micro_summary",
+        # create_5_sentence_summary is Fabric's "5 Levels" pattern (5 words down to
+        # 1 word), not a five-sentence summary despite the name. Kept here since
+        # it's a real, valid pattern, just not the default baseline anymore.
+        "create_5_sentence_summary",
         "analyze_claims", "analyze_paper", "analyze_prose", "analyze_tech_impact",
         "extract_extraordinary_claims", "extract_controversial_ideas",
         "extract_business_ideas", "extract_book_ideas", "extract_book_recommendations",
@@ -102,7 +106,7 @@ CURATED = {
     ],
     "per-topic-digest": [
         "create_network_threat_landscape", "create_reading_plan",
-        "create_5_sentence_summary", "extract_insights",
+        "create_micro_summary", "create_5_sentence_summary", "extract_insights",
         "extract_wisdom", "extract_business_ideas",
     ],
 }
