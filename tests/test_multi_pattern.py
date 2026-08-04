@@ -110,6 +110,68 @@ topics:
     check("fresh install: digests table also has pattern in its primary key",
           next(c for c in fresh_cols if c["name"] == "pattern")["pk"] > 0)
 
+    # --- summarize_articles: tiered budget spending ----------------------------
+    class StubProvider(summarize.Provider):
+        name = "stub"
+
+        def complete(self, system: str, user: str) -> str:
+            return f"stubbed: {system[:10]}"
+
+    class FakeLibrary:
+        def get(self, pattern: str) -> tuple[str, str]:
+            return (f"system for {pattern}", "")
+
+    def fake_row(aid: str, word_count: int = 500) -> dict:
+        return {"id": aid, "title": f"Title {aid}", "source": "Src", "url": f"https://x/{aid}",
+                "published_at": None, "body": "word " * word_count, "blurb": "blurb",
+                "word_count": word_count}
+
+    tiered_topic = Topic(name="Tiered", pattern_tiers=[
+        {"top": 1, "patterns": ["extract_insights", "create_5_sentence_summary"]},
+        {"patterns": ["create_5_sentence_summary"]},
+    ])
+    items = [{"row": fake_row(f"a{i}")} for i in range(3)]
+    mp_store = Store(tmp / "mp.sqlite3")
+    for it in items:
+        mp_store.upsert_article({**it["row"], "canonical_url": it["row"]["url"], "topic": "tiered",
+                                 "score": 0, "score_parts": {}, "cluster_id": it["row"]["id"]})
+    items = [{"row": mp_store.by_id(it["row"]["id"])} for it in items]  # real Row objects
+
+    made = summarize.summarize_articles(items, mp_store, StubProvider(), FakeLibrary(),
+                                        tiered_topic, max_items=3, budget=99)
+    check("tiered summarize: top article gets 2 patterns, rest get 1 each (4 total calls)",
+          made == 4, str(made))
+    check("top article has both tier patterns cached",
+          mp_store.get_summary("a0", "extract_insights") is not None and
+          mp_store.get_summary("a0", "create_5_sentence_summary") is not None)
+    check("second article only has the catch-all pattern cached",
+          mp_store.get_summary("a1", "extract_insights") is None and
+          mp_store.get_summary("a1", "create_5_sentence_summary") is not None)
+
+    # budget exhaustion stops mid-article, on a fresh store so nothing is cached yet
+    mp_store2 = Store(tmp / "mp2.sqlite3")
+    for it in items:
+        mp_store2.upsert_article({**it["row"], "canonical_url": it["row"]["url"], "topic": "tiered",
+                                  "score": 0, "score_parts": {}, "cluster_id": it["row"]["id"]})
+    limited = summarize.summarize_articles(items, mp_store2, StubProvider(), FakeLibrary(),
+                                           tiered_topic, max_items=3, budget=1)
+    check("a budget of 1 stops after exactly one pattern-call, mid-article",
+          limited == 1, str(limited))
+
+    # --- digest_topic: multiple patterns ----------------------------------------
+    digest_topic_obj = Topic(name="Digest", digest_patterns=["pattern_x", "pattern_y"],
+                             pattern_tiers=[{"patterns": ["create_5_sentence_summary"]}])
+    for it in items:
+        mp_store.put_summary(it["row"]["id"], "create_5_sentence_summary", "a summary", "model")
+    digests = summarize.digest_topic(items, mp_store, StubProvider(), FakeLibrary(),
+                                     digest_topic_obj, "2026-08-01")
+    check("digest_topic returns one entry per configured digest pattern",
+          set(digests.keys()) == {"pattern_x", "pattern_y"}, str(digests.keys()))
+
+    none_digest = summarize.digest_topic(items, mp_store, summarize.NoneProvider(), FakeLibrary(),
+                                         digest_topic_obj, "2026-08-01")
+    check("cached digests survive a NoneProvider rerun", none_digest == digests)
+
     print(f"\n{'-' * 60}")
     if FAILED:
         print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")

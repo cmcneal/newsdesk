@@ -124,58 +124,85 @@ def run_pattern(provider: Provider, library: PatternLibrary, pattern: str, conte
     return provider.complete(system, user)
 
 
-def summarize_articles(items, store, provider, library, pattern: str,
-                       limit: int, min_words: int = 120, force: bool = False) -> int:
-    """Run the per-article pattern over the top `limit` items. Returns calls made."""
+def summarize_articles(items, store, provider, library, topic,
+                       max_items: int, budget: int, min_words: int = 120,
+                       force: bool = False) -> int:
+    """Run each of the first `max_items` articles' tier-appropriate patterns
+    (topic.patterns_for_rank), stopping early once `budget` total pattern
+    calls have been made. Returns calls made, so the caller can subtract it
+    from a run-wide budget shared across topics."""
     if isinstance(provider, NoneProvider):
         return 0
     calls = 0
-    for item in items[:limit]:
+    for i, item in enumerate(items[:max_items]):
         row = item["row"]
-        if not force and store.get_summary(row["id"], pattern):
-            continue
         if (row["word_count"] or 0) < min_words and not (row["blurb"] or "").strip():
             continue
-        try:
-            out = run_pattern(provider, library, pattern, article_input(row))
-        except Exception as exc:  # noqa: BLE001 - one bad article must not kill the run
-            log.warning("summary failed for %s: %s", row["title"][:60], exc)
-            continue
-        if out:
-            store.put_summary(row["id"], pattern, out, provider.name)
-            calls += 1
+        for pattern in topic.patterns_for_rank(i):
+            if calls >= budget:
+                return calls
+            if not force and store.get_summary(row["id"], pattern):
+                continue
+            try:
+                out = run_pattern(provider, library, pattern, article_input(row))
+            except Exception as exc:  # noqa: BLE001 - one bad article must not kill the run
+                log.warning("summary failed for %s (%s): %s", row["title"][:60], pattern, exc)
+                continue
+            if out:
+                store.put_summary(row["id"], pattern, out, provider.name)
+                calls += 1
     return calls
 
 
-def digest_topic(items, store, provider, library, topic, edition: str,
-                 pattern: str, top_n: int = 8, force: bool = False) -> str:
-    """One synthesized 'what matters today' brief per topic."""
-    if not pattern:
-        return ""
-    cached = store.get_digest(edition, topic.slug)
-    if cached and not force:
-        return cached
-    if isinstance(provider, NoneProvider):
-        # Can't generate a new digest without a model, but a `--no-llm` or
-        # LLM-unavailable rebuild shouldn't blank out a digest already
-        # cached from an earlier run today.
-        return cached or ""
-
+def _build_digest_content(items, store, topic, edition: str, top_n: int) -> str | None:
+    """The digest prompt's input: the topic's top `top_n` articles, each
+    with whatever per-article summary is available. Returns None when
+    there's nothing to digest (no items)."""
     lines = []
     for i, item in enumerate(items[:top_n], 1):
         row = item["row"]
-        summary = store.get_summary(row["id"], topic.pattern) or row["blurb"] or ""
+        summary = ""
+        for pattern in topic.patterns_for_rank(i - 1):
+            summary = store.get_summary(row["id"], pattern)
+            if summary:
+                break
+        summary = summary or row["blurb"] or ""
         lines.append(f"{i}. {row['title']} ({row['source']})\n{summary[:1200]}\n")
     if not lines:
-        return ""
+        return None
+    return (f"Topic: {topic.name}\nEdition: {edition}\n\n"
+           "Today's ranked items:\n\n" + "\n".join(lines))
 
-    content = (f"Topic: {topic.name}\nEdition: {edition}\n\n"
-               "Today's ranked items:\n\n" + "\n".join(lines))
-    try:
-        out = run_pattern(provider, library, pattern, content)
-    except Exception as exc:  # noqa: BLE001
-        log.warning("digest failed for %s: %s", topic.name, exc)
-        return ""
-    if out:
-        store.put_digest(edition, topic.slug, pattern, out, provider.name)
-    return out
+
+def digest_topic(items, store, provider, library, topic, edition: str,
+                 top_n: int = 8, force: bool = False) -> dict[str, str]:
+    """One synthesized 'what matters today' brief per configured digest
+    pattern for this topic. Returns {pattern: output} for whatever patterns
+    produced something (cached or freshly generated)."""
+    results: dict[str, str] = {}
+    content = None  # built lazily; identical for every pattern, so build it once
+    for pattern in topic.digest_patterns:
+        cached = store.get_digest(edition, topic.slug, pattern)
+        if cached and not force:
+            results[pattern] = cached
+            continue
+        if isinstance(provider, NoneProvider):
+            # Can't generate a new digest without a model, but a `--no-llm`
+            # or LLM-unavailable rebuild shouldn't blank out a digest
+            # already cached from an earlier run today.
+            if cached:
+                results[pattern] = cached
+            continue
+        if content is None:
+            content = _build_digest_content(items, store, topic, edition, top_n)
+            if content is None:
+                break  # nothing to digest for any pattern
+        try:
+            out = run_pattern(provider, library, pattern, content)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("digest failed for %s (%s): %s", topic.name, pattern, exc)
+            continue
+        if out:
+            store.put_digest(edition, topic.slug, pattern, out, provider.name)
+            results[pattern] = out
+    return results
