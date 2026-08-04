@@ -181,6 +181,7 @@ def digest_topic(items, store, provider, library, topic, edition: str,
     produced something (cached or freshly generated)."""
     results: dict[str, str] = {}
     content = None  # built lazily; identical for every pattern, so build it once
+    content_attempted = False  # distinguishes "not built yet" from "built, came back empty"
     for pattern in topic.digest_patterns:
         cached = store.get_digest(edition, topic.slug, pattern)
         if cached and not force:
@@ -193,10 +194,11 @@ def digest_topic(items, store, provider, library, topic, edition: str,
             if cached:
                 results[pattern] = cached
             continue
-        if content is None:
+        if not content_attempted:
             content = _build_digest_content(items, store, topic, edition, top_n)
-            if content is None:
-                break  # nothing to digest for any pattern
+            content_attempted = True
+        if content is None:
+            continue  # nothing to digest right now, but later patterns may still have a cache hit
         try:
             out = run_pattern(provider, library, pattern, content)
         except Exception as exc:  # noqa: BLE001

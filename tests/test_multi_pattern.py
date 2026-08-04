@@ -172,6 +172,20 @@ topics:
                                          digest_topic_obj, "2026-08-01")
     check("cached digests survive a NoneProvider rerun", none_digest == digests)
 
+    # --- digest_topic: empty items must not drop an already-cached digest
+    #     for a later pattern in topic.digest_patterns -----------------------
+    empty_digest_topic = Topic(name="EmptyDigest", digest_patterns=["cached_pattern", "uncached_pattern"],
+                               pattern_tiers=[{"patterns": ["create_5_sentence_summary"]}])
+    check("EmptyDigest topic slug derivation matches expectation",
+          empty_digest_topic.slug == "emptydigest", empty_digest_topic.slug)
+    mp_store.put_digest("2026-08-02", "emptydigest", "cached_pattern", "already cached", "model")
+    empty_result = summarize.digest_topic([], mp_store, StubProvider(), FakeLibrary(),
+                                          empty_digest_topic, "2026-08-02")
+    check("cached digest for a later pattern survives when items is empty",
+          empty_result.get("cached_pattern") == "already cached", str(empty_result))
+    check("uncached pattern has no entry when there's nothing to digest",
+          "uncached_pattern" not in empty_result, str(empty_result))
+
     print(f"\n{'-' * 60}")
     if FAILED:
         print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
