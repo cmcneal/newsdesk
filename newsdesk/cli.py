@@ -89,19 +89,18 @@ def cmd_build(args) -> int:
         scanned += len(ranked)
         log.info("%-22s %3d ranked", topic.slug, len(ranked))
 
-        per_topic = min(topic.max_items, budget)
-        if per_topic > 0:
+        if budget > 0 and topic.max_items > 0:
             used = summarize.summarize_articles(
-                ranked, store, provider, library, topic.pattern,
-                limit=per_topic, force=args.force)
+                ranked, store, provider, library, topic,
+                max_items=topic.max_items, budget=budget, force=args.force)
             budget -= used
             if used:
-                log.info("%-22s %3d summaries (%s)", topic.slug, used, topic.pattern)
+                log.info("%-22s %3d summaries", topic.slug, used)
 
-        if topic.digest_pattern:
+        if topic.digest_patterns:
             digest = summarize.digest_topic(
                 ranked[:topic.max_items], store, provider, library, topic,
-                edition, topic.digest_pattern, force=args.force)
+                edition, force=args.force)
             if digest:
                 digests[topic.slug] = digest
 
@@ -138,7 +137,7 @@ def cmd_doctor(args) -> int:
 
     wanted = []
     for t in cfg.topics:
-        wanted += [t.pattern, t.digest_pattern]
+        wanted += [p for band in t.pattern_tiers for p in band["patterns"]] + t.digest_patterns
     for name, status in library.warm([w for w in wanted if w]).items():
         good = status == "ok"
         print(f"[{'ok ' if good else 'FAIL'}] pattern  {name}: {status}")
@@ -185,7 +184,12 @@ def cmd_topics(args) -> int:
     cfg, store, _ = _setup(args)
     for t in cfg.topics:
         ranked = score.rank(store, t, cfg.scoring)
-        print(f"\n{t.name}  [{t.slug}]  pattern={t.pattern}  digest={t.digest_pattern or '-'}")
+        tier_desc = ", ".join(
+            f"top {b['top']}: {len(b['patterns'])} pattern{'s' if len(b['patterns']) != 1 else ''}"
+            if b.get("top") is not None
+            else f"rest: {len(b['patterns'])} pattern{'s' if len(b['patterns']) != 1 else ''}"
+            for b in t.pattern_tiers) or "none"
+        print(f"\n{t.name}  [{t.slug}]  tiers=[{tier_desc}]  digests={len(t.digest_patterns)}")
         print(f"  {len(t.sources)} sources, {len(ranked)} ranked, showing {t.max_items}")
         for item in ranked[:t.max_items]:
             r, p = item["row"], item["parts"]
