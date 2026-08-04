@@ -15,7 +15,10 @@ workers: 8
 # ---------------------------------------------------------------------------
 llm:
   provider: ollama
-  max_items_per_run: 45          # hard cap on per-article pattern runs per build
+  max_items_per_run: 150         # hard cap on per-article pattern *calls* per build (a
+                                  # top-tier article can cost several, per pattern_tiers
+                                  # below). Digests aren't counted against this; they're
+                                  # low-volume (one call per topic per digest pattern).
 
   ollama:
     host: http://localhost:11434

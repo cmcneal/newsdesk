@@ -169,7 +169,9 @@ requirement, so it survives the build host being off, and it prints cleanly.
 `provider: ollama` is the default. On CPU-only hardware, an 8B model at Q4 handles
 extraction and summarization well; `keep_alive` is set to 15 minutes so the model stays
 resident across the whole run rather than reloading per article. Budget roughly 30 to 90
-seconds per article and cap the run with `llm.max_items_per_run`.
+seconds per pattern call, not per article: a top-tier article with four patterns costs
+four times that. `llm.max_items_per_run` caps total pattern calls per build (not digests,
+which are uncapped but low-volume).
 
 `provider: anthropic` is the same pipeline against the API when you want a faster or
 sharper pass. Set `ANTHROPIC_API_KEY` and switch one line. Cached summaries mean you can
