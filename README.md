@@ -87,19 +87,30 @@ Filtering per topic:
 Patterns are fetched from the Fabric repo on first use and cached under `.cache/patterns`,
 so you track upstream edits without vendoring anyone else's prompts.
 
-- `pattern` runs on each article. `extract_insights` and `create_5_sentence_summary` are
-  the workhorses. `extract_wisdom` is richer and slower.
-- `digest_pattern` runs once per topic across that day's top stories. This is what makes
-  the board read like a briefing instead of a list.
-  `create_network_threat_landscape` for security, `create_5_sentence_summary` for
-  everything else, `create_reading_plan` for a long-reads section.
+Each topic runs more than one pattern, both per article and for its digest, and shows
+the results as tabs so you read to whatever depth you want:
+
+- `pattern_tiers` decides which patterns run on each article, based on its ranked
+  position within the topic. A story in the top tier might get all four patterns; a
+  story further down might only get the 5-sentence summary. This keeps the board
+  useful for a quick scan of everything while going deep on what actually ranked well.
+  Each band is `{top: N, patterns: [...]}`, except the last, which is the catch-all
+  (no `top` key) and applies to everything not covered by an earlier band.
+- `digest_patterns` is a flat list: every pattern in it runs once across the topic's
+  top stories for that edition, shown as tabs above the topic's brief.
+
+Both default from `topic_defaults` and can be overridden per topic. The shipped
+`config.yaml` applies `create_5_sentence_summary`, `extract_wisdom`, `extract_insights`,
+and `extract_business_ideas` to every topic's top 3 stories and digest, and just the
+5-sentence summary to the rest.
 
 Override any pattern locally by creating `patterns/<name>/system.md` next to your config.
 A local file always wins over the cached copy. Set `patterns.offline: true` to work from
 cache only.
 
-Summaries are cached on `(article_id, pattern)`, so a re-run costs nothing. Change a
-topic's `pattern` and only the new pattern runs.
+Summaries are cached on `(article_id, pattern)` and digests on `(edition, topic, pattern)`,
+so a re-run costs nothing. Change a topic's `pattern_tiers`/`digest_patterns` and only the
+newly-added patterns run.
 
 ## Running it daily
 

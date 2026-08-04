@@ -68,21 +68,27 @@ topic_defaults:
   max_items: 8
   min_score: 0.15
   require_match: true            # false = keep everything the feed carries
+  digest_patterns: [create_5_sentence_summary, extract_wisdom, extract_insights, extract_business_ideas]
+  pattern_tiers:
+    - top: 3                     # the 3 highest-ranked stories in each topic
+      patterns: [create_5_sentence_summary, extract_wisdom, extract_insights, extract_business_ideas]
+    - patterns: [create_5_sentence_summary]   # everyone else: catch-all, must be last
 
 # ---------------------------------------------------------------------------
 # TOPICS
-#   pattern         Fabric pattern run on each article
-#   digest_pattern  Fabric pattern run once across the topic's top stories
-#   include         gate + boost (with require_match: true, a story needs one)
-#   boost           boost only, never gates
-#   exclude         drops the story outright
+#   pattern_tiers    ranked-position bands -> which patterns run per article
+#                    (defaults above; override per-topic to diverge, e.g.
+#                    pattern_tiers: [{patterns: [create_network_threat_landscape]}])
+#   digest_patterns  patterns run once across the topic's top stories, shown
+#                    as tabs above the topic's brief
+#   include          gate + boost (with require_match: true, a story needs one)
+#   boost            boost only, never gates
+#   exclude          drops the story outright
 # ---------------------------------------------------------------------------
 topics:
 
   - name: Security & Threat Intel
     slug: security
-    pattern: extract_insights
-    digest_pattern: create_network_threat_landscape
     max_items: 10
     include: [vulnerability, exploit, ransomware, breach, CVE, zero-day, patch,
               threat actor, malware, phishing, supply chain, CISA, advisory,
@@ -100,8 +106,6 @@ topics:
 
   - name: AI Engineering & Governance
     slug: ai
-    pattern: extract_wisdom
-    digest_pattern: create_5_sentence_summary
     max_items: 10
     include: [LLM, agent, model, inference, RAG, evaluation, fine-tune, prompt,
               AI governance, AI policy, EU AI Act, NIST AI, open weights,
@@ -118,8 +122,6 @@ topics:
 
   - name: Engineering Leadership & Delivery
     slug: delivery
-    pattern: extract_main_idea
-    digest_pattern: extract_insights
     max_items: 7
     include: [engineering management, team, delivery, agile, scrum, sprint,
               architecture, technical debt, developer productivity, DORA,
@@ -134,8 +136,6 @@ topics:
 
   - name: Quality & Testing
     slug: quality
-    pattern: create_5_sentence_summary
-    digest_pattern: create_5_sentence_summary
     max_items: 6
     include: [testing, QA, quality, test automation, flaky, coverage,
               regression, exploratory testing, accessibility testing, CI]
@@ -147,8 +147,6 @@ topics:
 
   - name: Tech Business & Signals
     slug: business
-    pattern: extract_business_ideas
-    digest_pattern: create_5_sentence_summary
     max_items: 6
     include: [acquisition, funding, layoffs, earnings, market, regulation,
               antitrust, pricing, enterprise software, SaaS, procurement]
@@ -160,8 +158,6 @@ topics:
   # Longer pieces worth an actual sit-down. Slow half life, deeper patterns.
   - name: Deep Reads
     slug: deep
-    pattern: extract_wisdom
-    digest_pattern: create_reading_plan
     max_items: 5
     min_score: 0.05
     require_match: false

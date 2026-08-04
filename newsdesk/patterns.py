@@ -103,5 +103,6 @@ CURATED = {
     "per-topic-digest": [
         "create_network_threat_landscape", "create_reading_plan",
         "create_5_sentence_summary", "extract_insights",
+        "extract_wisdom", "extract_business_ideas",
     ],
 }
